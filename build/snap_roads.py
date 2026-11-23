@@ -1,0 +1,52 @@
+"""Move each town's Street View drop point onto the nearest named road.
+
+Why: the keyless Street View embed opens the panorama nearest the point it's given. Town-center points
+often sit on a landmark where people upload their own (sometimes indoor) photospheres; Google's car
+imagery runs down the road centerline, so a point on a named street lands on official coverage.
+
+Uses the public OSRM 'nearest' service (car profile), at most 1 request a second per its usage policy.
+Regions whose players.js svMode is 'photo' (no Google car coverage: Venezuela, Cuba...) keep the plaza
+point, where uploaded photos cluster.
+
+usage: python3 snap_roads.py <players.js> <locations.js in> <locations.js out>
+Writes each snapped town as [lat, lng, svLat, svLng]; lat/lng (town center) stays the answer.
+Resumable: progress is cached in snap_cache.json next to this script.
+"""
+import sys, os, json, re, time, subprocess
+
+pjs, src, dst = sys.argv[1:4]
+D = json.loads(re.search(r'=(\{.*\});', open(pjs, encoding='utf-8').read(), re.S).group(1))
+mode = D.get('svMode', {})
+L = json.loads(re.search(r'=(\{.*\});', open(src).read(), re.S).group(1))
+here = os.path.dirname(os.path.abspath(__file__))
+cache_p = os.path.join(here, 'snap_cache.json')
+cache = json.load(open(cache_p)) if os.path.exists(cache_p) else {}
+
+todo = [k for k in L if k not in cache and mode.get(k.split('|')[0], 'road') == 'road']
+print(f'{len(todo)} towns to snap ({len(cache)} cached)', file=sys.stderr)
+for i, k in enumerate(todo):
+    la, lo = L[k][:2]
+    url = f'https://router.project-osrm.org/nearest/v1/driving/{lo},{la}?number=5'
+    res = None
+    for attempt in range(4):
+        r = subprocess.run(['curl', '-s', '-m', '20', '-A', 'GeoBaseball-build/1.0', url], capture_output=True, text=True)
+        try:
+            j = json.loads(r.stdout)
+            if j.get('code') == 'Ok': res = j['waypoints']; break
+        except Exception: pass
+        time.sleep(3 * (attempt + 1))
+    if res is not None:
+        named = [w for w in res if w.get('name') and w['distance'] < 600]
+        w = named[0] if named else (res[0] if res and res[0]['distance'] < 300 else None)
+        cache[k] = [round(w['location'][1], 6), round(w['location'][0], 6)] if w else None
+    if i % 25 == 0:
+        json.dump(cache, open(cache_p, 'w')); print(f'  {i}/{len(todo)}', file=sys.stderr, flush=True)
+    time.sleep(1.05)
+json.dump(cache, open(cache_p, 'w'))
+
+out, n = {}, 0
+for k, v in L.items():
+    s = cache.get(k) if mode.get(k.split('|')[0], 'road') == 'road' else None
+    out[k] = v[:2] + s if s else v[:2]; n += bool(s)
+print(f'snapped {n} of {len(L)} towns', file=sys.stderr)
+open(dst, 'w').write('window.GEO_LOCS=' + json.dumps(out, separators=(',', ':')) + ';\n')
