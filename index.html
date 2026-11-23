@@ -1,0 +1,903 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>GeoBaseball</title>
+<meta name="description" content="A GeoGuessr-style baseball game. Dropped somewhere in America. Guess where you are, then draft a big leaguer born there. Nine rounds, nine spots, one lineup.">
+<meta property="og:title" content="GeoBaseball — a Jomboy Media game">
+<meta property="og:description" content="Guess where you landed. Draft who was born there. Build the best nine by career WAR.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%230d1f2d'/%3E%3Cpath d='M32 12c-8 0-14 6-14 14 0 10 14 26 14 26s14-16 14-26c0-8-6-14-14-14z' fill='%23fbcc7a'/%3E%3Ccircle cx='32' cy='26' r='5' fill='%230d1f2d'/%3E%3C/svg%3E">
+<style>
+:root{
+  --navy:#0d1f2d; --navy2:#132b3e; --navy3:#1b3a52; --ink:#08141e;
+  --gold:#fbcc7a; --gold2:#f5b84a; --cream:#fff7e8;
+  --green:#5fd38d; --red:#ff6b6b; --blue:#6cb8ff;
+  --text:#f2f5f8; --muted:#9bb0c2; --line:rgba(255,255,255,.12);
+  --bebas:'Bebas Neue',Impact,sans-serif; --sans:'DM Sans',system-ui,sans-serif; --mono:'DM Mono',ui-monospace,monospace;
+  --r:14px; --shadow:0 10px 30px rgba(0,0,0,.45);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--ink);color:var(--text);font-family:var(--sans);-webkit-font-smoothing:antialiased;overflow:hidden}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+button:disabled{cursor:not-allowed;opacity:.45}
+a{color:var(--gold)}
+.bebas{font-family:var(--bebas);letter-spacing:.02em;font-weight:400}
+.mono{font-family:var(--mono)}
+.screen{position:fixed;inset:0;display:none}
+.screen.on{display:block}
+
+/* ---------- buttons ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.5em;font-family:var(--bebas);font-size:22px;letter-spacing:.06em;
+  padding:12px 26px;border-radius:999px;background:var(--gold);color:var(--navy);box-shadow:0 4px 0 #b9862e,0 8px 20px rgba(0,0,0,.35);transition:transform .08s,box-shadow .08s,filter .15s}
+.btn:hover:not(:disabled){filter:brightness(1.06)}
+.btn:active:not(:disabled){transform:translateY(3px);box-shadow:0 1px 0 #b9862e,0 4px 10px rgba(0,0,0,.35)}
+.btn.ghost{background:rgba(255,255,255,.08);color:var(--text);box-shadow:inset 0 0 0 1.5px var(--line)}
+.btn.ghost:active:not(:disabled){box-shadow:inset 0 0 0 1.5px var(--line)}
+.btn.green{background:var(--green);box-shadow:0 4px 0 #2f9a5a,0 8px 20px rgba(0,0,0,.35)}
+.btn.small{font-size:17px;padding:8px 16px}
+.chip{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+  padding:4px 9px;border-radius:999px;background:rgba(255,255,255,.08);color:var(--muted)}
+
+/* ---------- home ---------- */
+#home{overflow:auto;background:
+  radial-gradient(1200px 600px at 80% -10%,rgba(251,204,122,.16),transparent 60%),
+  radial-gradient(900px 600px at -10% 110%,rgba(108,184,255,.12),transparent 60%),
+  linear-gradient(180deg,#0f2536,#08141e)}
+#home .grid-bg{position:fixed;inset:0;pointer-events:none;opacity:.07;
+  background-image:linear-gradient(var(--gold) 1px,transparent 1px),linear-gradient(90deg,var(--gold) 1px,transparent 1px);background-size:64px 64px;
+  mask-image:radial-gradient(ellipse at 50% 30%,#000 20%,transparent 70%)}
+.home-wrap{position:relative;max-width:1080px;margin:0 auto;padding:28px 16px 60px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{display:flex;align-items:center;gap:10px}
+.brand .pin{width:34px;height:34px}
+.brand b{white-space:nowrap;font-family:var(--bebas);font-size:26px;letter-spacing:.06em;font-weight:400}
+.brand small{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;margin-top:-4px}
+.hero{text-align:center;padding:56px 0 28px}
+.hero h1{font-family:var(--bebas);font-weight:400;font-size:clamp(64px,13vw,150px);line-height:.85;margin:0;letter-spacing:.02em;
+  background:linear-gradient(180deg,#fff 0%,#fff 48%,var(--gold) 52%,var(--gold2) 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 6px 0 rgba(0,0,0,.35))}
+.hero p{max-width:600px;margin:18px auto 0;color:#c9d6e2;font-size:18px;line-height:1.5}
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:34px}
+.mode{position:relative;border-radius:22px;padding:26px;background:linear-gradient(160deg,var(--navy3),var(--navy2));box-shadow:var(--shadow),inset 0 0 0 1px var(--line);overflow:hidden}
+.mode h2{font-family:var(--bebas);font-weight:400;font-size:40px;margin:0;letter-spacing:.03em}
+.mode p{color:var(--muted);margin:6px 0 18px;line-height:1.45;min-height:44px}
+.mode .art{position:absolute;right:-30px;top:-30px;font-size:150px;opacity:.08;transform:rotate(-12deg);pointer-events:none}
+.mode.daily{background:linear-gradient(160deg,#3a2c12,#1d1a12 70%);box-shadow:var(--shadow),inset 0 0 0 1.5px rgba(251,204,122,.45)}
+.settings{display:flex;flex-wrap:wrap;gap:16px;margin-bottom:18px}
+.seg{display:flex;flex-direction:column;gap:6px}
+.seg label{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.seg .opts{display:flex;background:rgba(0,0,0,.3);border-radius:999px;padding:3px}
+.seg .opts button{font-family:var(--mono);font-size:12px;padding:6px 11px;border-radius:999px;color:var(--muted)}
+.seg .opts button.on{background:var(--gold);color:var(--navy);font-weight:500}
+.howto{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:34px}
+.step{background:rgba(255,255,255,.04);border-radius:16px;padding:18px;box-shadow:inset 0 0 0 1px var(--line)}
+.step .n{font-family:var(--bebas);font-size:34px;color:var(--gold);line-height:1}
+.step b{display:block;font-family:var(--bebas);font-size:22px;font-weight:400;letter-spacing:.03em;margin:6px 0 4px}
+.step span{color:var(--muted);font-size:14px;line-height:1.45}
+.statsrow{display:flex;justify-content:center;flex-wrap:wrap;gap:10px;margin-top:22px}
+.foot{text-align:center;color:#5f7689;font-size:12px;margin-top:40px;line-height:1.7}
+@media (max-width:760px){.modes{grid-template-columns:1fr}.howto{grid-template-columns:1fr 1fr}.hero{padding-top:34px}}
+
+/* ---------- game ---------- */
+#game{background:#000}
+#sv{position:absolute;inset:0;overflow:hidden}
+#sv iframe{position:absolute;left:0;top:-64px;width:calc(100% + 64px);height:calc(100% + 64px);border:0}
+#svBlock{position:absolute;inset:0;display:none;z-index:2}
+#svBlock.on{display:block}
+#svLoading{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+  background:radial-gradient(circle at 50% 40%,#173247,#08141e);transition:opacity .5s}
+#svLoading.gone{opacity:0;pointer-events:none}
+.spinner{width:56px;height:56px;border-radius:50%;border:4px solid rgba(251,204,122,.2);border-top-color:var(--gold);animation:spin 0.9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.hud-top{position:absolute;left:0;right:0;top:0;z-index:5;display:flex;justify-content:space-between;align-items:flex-start;padding:12px;pointer-events:none;
+  background:linear-gradient(180deg,rgba(8,20,30,.85),rgba(8,20,30,0));height:110px}
+.hud-top > *{pointer-events:auto}
+.hud-brand{display:flex;align-items:center;gap:8px;padding:6px 14px 6px 8px;border-radius:999px;background:rgba(13,31,45,.92);box-shadow:inset 0 0 0 1px var(--line)}
+.hud-brand b{font-family:var(--bebas);font-size:22px;letter-spacing:.06em;font-weight:400}
+.hud-stats{display:flex;gap:2px;background:rgba(13,31,45,.92);border-radius:12px;overflow:hidden;box-shadow:inset 0 0 0 1px var(--line)}
+.hud-stat{padding:6px 16px;text-align:center;min-width:86px}
+.hud-stat + .hud-stat{border-left:1px solid var(--line)}
+.hud-stat small{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;color:var(--muted);text-transform:uppercase}
+.hud-stat b{font-family:var(--bebas);font-size:26px;font-weight:400;letter-spacing:.04em;line-height:1}
+.hud-stat.timer b{color:var(--gold)}
+.hud-stat.timer.low b{color:var(--red);animation:pulse .6s ease-in-out infinite alternate}
+@keyframes pulse{to{opacity:.5}}
+.lineup-strip{position:absolute;left:50%;top:12px;transform:translateX(-50%);z-index:6;display:flex;gap:4px;padding:5px;border-radius:12px;background:rgba(13,31,45,.92);box-shadow:inset 0 0 0 1px var(--line)}
+.ls-slot{width:40px;height:40px;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(255,255,255,.05);position:relative;overflow:hidden}
+.ls-slot span{font-family:var(--bebas);font-size:16px;line-height:1;color:var(--muted)}
+.ls-slot i{font-style:normal;font-family:var(--mono);font-size:9px;color:var(--gold)}
+.ls-slot.full{background:rgba(251,204,122,.16)}
+.ls-slot.full span{color:var(--gold)}
+.ls-slot.forced{background:rgba(255,107,107,.16)}
+.ls-slot.forced span{color:var(--red)}
+.hud-left{position:absolute;left:12px;bottom:34px;z-index:5;display:flex;flex-direction:column;gap:8px}
+.round-btn{width:46px;height:46px;border-radius:50%;background:rgba(13,31,45,.92);display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 0 1px var(--line),0 4px 12px rgba(0,0,0,.4);font-size:20px}
+.round-btn:hover{background:var(--navy3)}
+.round-btn[data-tip]{position:relative}
+.round-btn[data-tip]:hover::after{content:attr(data-tip);position:absolute;left:56px;top:50%;transform:translateY(-50%);white-space:nowrap;background:var(--navy);padding:6px 10px;border-radius:8px;font-size:12px;font-family:var(--mono);box-shadow:var(--shadow)}
+#guessWrap{position:absolute;right:14px;bottom:34px;z-index:6;width:300px;transition:width .22s ease,opacity .2s;opacity:.72;display:flex;flex-direction:column;gap:8px}
+#guessWrap:hover,#guessWrap.pinned,#guessWrap.wide{width:min(620px,58vw);opacity:1}
+#guessWrap.wide #miniMap{height:min(440px,52vh)}
+#miniMap{height:200px;border-radius:12px;overflow:hidden;box-shadow:0 0 0 2px rgba(13,31,45,.9),var(--shadow);transition:height .22s ease;cursor:crosshair}
+#guessWrap:hover #miniMap,#guessWrap.pinned #miniMap{height:min(440px,52vh)}
+.mm-tools{position:absolute;top:8px;left:8px;z-index:500;display:flex;gap:4px;opacity:0;transition:opacity .2s}
+#guessWrap:hover .mm-tools,#guessWrap.pinned .mm-tools{opacity:1}
+.mm-tools button{width:28px;height:28px;border-radius:7px;background:rgba(13,31,45,.9);color:#fff;font-size:13px}
+.mm-tools button.on{background:var(--gold);color:var(--navy)}
+#guessBtn{width:100%;font-size:24px;padding:12px}
+#mapToggle{display:none}
+#closeMap{display:none}
+@media (max-width:760px){
+  .lineup-strip{top:66px;left:50%;transform:translateX(-50%);gap:3px;padding:4px}
+  .ls-slot{width:30px;height:30px}.ls-slot span{font-size:13px}.ls-slot i{display:none}
+  .hud-brand b{display:none}
+  .hud-stat{min-width:62px;padding:5px 10px}.hud-stat b{font-size:21px}
+  .hud-left{bottom:24px}
+  #guessWrap{left:0;right:0;bottom:0;width:auto!important;opacity:1;padding:12px;background:rgba(8,20,30,.96);border-radius:18px 18px 0 0;transform:translateY(110%);transition:transform .25s}
+  #guessWrap.open{transform:none}
+  #guessWrap #miniMap{height:58vh!important}
+  #mapToggle{display:flex;position:absolute;right:14px;bottom:14px;z-index:6}
+  #guessWrap.open ~ #mapToggle{display:none}
+  #closeMap{display:block;position:absolute;right:20px;top:20px;z-index:600;width:36px;height:36px;border-radius:50%;background:rgba(13,31,45,.95);font-size:18px}
+  .mm-tools{display:none}
+}
+
+/* ---------- result ---------- */
+#result{background:var(--ink);display:none}
+#result.on{display:grid;grid-template-columns:1fr minmax(380px,460px)}
+#resMap{position:relative;height:100%}
+#resMap .lmap{position:absolute;inset:0}
+.res-score{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);z-index:500;width:min(560px,calc(100% - 32px));padding:16px 20px;border-radius:18px;background:rgba(13,31,45,.95);box-shadow:var(--shadow),inset 0 0 0 1px var(--line);text-align:center}
+.res-score .pts{font-family:var(--bebas);font-size:44px;line-height:1;color:var(--gold)}
+.res-score .pts small{font-size:22px;color:var(--muted)}
+.bar{height:10px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden;margin:10px 0 8px}
+.bar > i{display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,var(--gold2),var(--gold));transition:width 1.1s cubic-bezier(.2,.8,.2,1)}
+.res-score .dist{color:#c9d6e2;font-size:15px}
+.res-score .dist b{color:#fff}
+#draft{overflow:auto;background:linear-gradient(180deg,var(--navy2),var(--navy));box-shadow:-10px 0 30px rgba(0,0,0,.4);padding:22px 20px 30px;display:flex;flex-direction:column;gap:14px}
+.d-kicker{font-family:var(--mono);font-size:11px;letter-spacing:.16em;color:var(--muted);text-transform:uppercase}
+.d-place{font-family:var(--bebas);font-size:40px;line-height:.95;font-weight:400;letter-spacing:.02em;margin:2px 0 0}
+.verdict{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:14px}
+.verdict.ok{background:rgba(95,211,141,.12);box-shadow:inset 0 0 0 1.5px rgba(95,211,141,.5)}
+.verdict.no{background:rgba(255,107,107,.1);box-shadow:inset 0 0 0 1.5px rgba(255,107,107,.45)}
+.verdict .ic{font-size:28px}
+.verdict b{font-family:var(--bebas);font-size:24px;font-weight:400;letter-spacing:.04em;display:block;line-height:1}
+.verdict span{font-size:13.5px;color:#c9d6e2}
+.slots{display:grid;grid-template-columns:repeat(9,1fr);gap:4px}
+.slot{border-radius:8px;padding:5px 2px;text-align:center;background:rgba(255,255,255,.05);min-width:0}
+.slot b{display:block;font-family:var(--bebas);font-size:16px;font-weight:400;color:var(--muted);line-height:1.1}
+.slot span{display:block;font-size:9.5px;font-family:var(--mono);color:var(--gold);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.slot.full{background:rgba(251,204,122,.12)}.slot.full b{color:var(--gold)}
+.slot.forced{background:rgba(255,107,107,.12)}.slot.forced b{color:var(--red)}
+.slot.can{box-shadow:inset 0 0 0 1.5px var(--green)}
+.search{width:100%;padding:11px 14px;border-radius:12px;border:0;background:rgba(0,0,0,.28);color:#fff;font:inherit;font-size:15px;box-shadow:inset 0 0 0 1px var(--line)}
+.search:focus{outline:none;box-shadow:inset 0 0 0 1.5px var(--gold)}
+.filters{display:flex;gap:4px;flex-wrap:wrap}
+.filters button{font-family:var(--mono);font-size:11px;padding:4px 9px;border-radius:999px;background:rgba(255,255,255,.06);color:var(--muted)}
+.filters button.on{background:var(--gold);color:var(--navy)}
+.plist{display:flex;flex-direction:column;gap:4px;max-height:none}
+.prow{display:grid;grid-template-columns:38px 1fr auto;align-items:center;gap:10px;padding:7px 10px 7px 7px;border-radius:12px;background:rgba(255,255,255,.04);text-align:left;width:100%}
+.prow:hover{background:rgba(255,255,255,.09)}
+.prow.sel{background:rgba(251,204,122,.16);box-shadow:inset 0 0 0 1.5px var(--gold)}
+.prow .ph{width:38px;height:38px;border-radius:50%;background:var(--navy3) center/cover no-repeat;display:flex;align-items:center;justify-content:center;font-family:var(--bebas);font-size:16px;color:var(--muted)}
+.prow .nm{font-weight:700;font-size:14.5px;line-height:1.2}
+.prow .meta{font-size:11.5px;color:var(--muted);font-family:var(--mono)}
+.prow .meta .here{color:var(--green)}
+.prow .war{font-family:var(--bebas);font-size:24px;color:var(--gold);line-height:1;text-align:right}
+.prow .war small{display:block;font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.1em}
+.more{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:center;padding:8px}
+
+/* player card */
+.pcard{border-radius:18px;overflow:hidden;background:linear-gradient(160deg,#1f4462,#0f2536);box-shadow:var(--shadow),inset 0 0 0 1px rgba(251,204,122,.35)}
+.pc-top{display:grid;grid-template-columns:112px 1fr;gap:14px;padding:16px;align-items:center}
+.pc-photo{width:112px;height:112px;border-radius:14px;background:var(--navy) center/cover no-repeat;display:flex;align-items:center;justify-content:center;font-family:var(--bebas);font-size:46px;color:var(--gold);box-shadow:inset 0 0 0 2px rgba(251,204,122,.4)}
+.pc-name{font-family:var(--bebas);font-size:34px;line-height:.92;letter-spacing:.02em}
+.pc-born{font-size:13px;color:#c9d6e2;margin-top:6px}
+.pc-born b{color:var(--gold)}
+.pc-war{display:flex;align-items:baseline;gap:8px;margin-top:8px}
+.pc-war b{font-family:var(--bebas);font-size:40px;color:var(--gold);line-height:.9}
+.pc-war span{font-family:var(--mono);font-size:10.5px;color:var(--muted);letter-spacing:.12em}
+.pc-body{padding:0 16px 16px;display:flex;flex-direction:column;gap:10px}
+.pc-line{font-size:12.5px;color:#c9d6e2;line-height:1.45}
+.pc-line b{font-family:var(--mono);font-weight:500;font-size:10px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-right:6px}
+.pc-stats{display:grid;grid-template-columns:repeat(6,1fr);gap:4px}
+.pc-stats div{background:rgba(0,0,0,.25);border-radius:8px;padding:6px 2px;text-align:center}
+.pc-stats small{display:block;font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.08em}
+.pc-stats b{font-family:var(--bebas);font-size:19px;font-weight:400}
+.pc-aw{display:flex;flex-wrap:wrap;gap:4px}
+.pc-aw span{font-size:11px;padding:3px 8px;border-radius:99px;background:rgba(251,204,122,.12);color:var(--gold)}
+.pc-aw span.hof{background:var(--gold);color:var(--navy);font-weight:700}
+.pc-actions{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.pc-actions .lbl{font-family:var(--mono);font-size:10.5px;color:var(--muted);letter-spacing:.1em;width:100%}
+
+/* wheel */
+.wheel{position:relative;height:96px;border-radius:16px;overflow:hidden;background:#06111a;box-shadow:inset 0 0 0 2px rgba(255,107,107,.45)}
+.wheel::before,.wheel::after{content:"";position:absolute;left:0;right:0;height:28px;z-index:2;pointer-events:none}
+.wheel::before{top:0;background:linear-gradient(#06111a,transparent)}
+.wheel::after{bottom:0;background:linear-gradient(transparent,#06111a)}
+.wheel .mark{position:absolute;left:8px;right:8px;top:50%;height:40px;transform:translateY(-50%);border-radius:10px;box-shadow:inset 0 0 0 2px var(--gold);z-index:3;pointer-events:none}
+.reel{position:absolute;left:0;right:0;top:28px}
+.reel div{height:40px;display:flex;align-items:center;justify-content:center;font-family:var(--bebas);font-size:26px;letter-spacing:.03em;white-space:nowrap}
+
+/* ---------- final ---------- */
+#final{overflow:auto;background:linear-gradient(180deg,#0f2536,#08141e)}
+.fin-wrap{max-width:1180px;margin:0 auto;padding:24px 16px 60px}
+.fin-head{text-align:center;margin:10px 0 22px}
+.fin-head h1{font-family:var(--bebas);font-weight:400;font-size:clamp(46px,8vw,84px);margin:0;line-height:.9}
+.fin-head .sub{color:var(--muted);font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase}
+.fin-totals{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px}
+.tot{border-radius:18px;padding:18px;text-align:center;background:rgba(255,255,255,.04);box-shadow:inset 0 0 0 1px var(--line)}
+.tot small{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;color:var(--muted);text-transform:uppercase}
+.tot b{display:block;font-family:var(--bebas);font-weight:400;font-size:54px;line-height:1;color:var(--gold);margin-top:4px}
+.tot span{color:#c9d6e2;font-size:14px}
+#finMap{height:340px;border-radius:18px;overflow:hidden;box-shadow:var(--shadow);margin-bottom:18px}
+.teams{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.team{border-radius:18px;padding:18px;background:linear-gradient(160deg,var(--navy3),var(--navy2));box-shadow:var(--shadow),inset 0 0 0 1px var(--line)}
+.team.best{background:linear-gradient(160deg,#2c2412,#17150f);box-shadow:var(--shadow),inset 0 0 0 1px rgba(251,204,122,.35)}
+.team h3{font-family:var(--bebas);font-weight:400;font-size:30px;margin:0 0 2px;display:flex;justify-content:space-between;align-items:baseline}
+.team h3 b{font-weight:400;color:var(--gold)}
+.team .sub{color:var(--muted);font-size:13px;margin-bottom:10px}
+.trow{display:grid;grid-template-columns:34px 30px 1fr auto;gap:10px;align-items:center;padding:7px 0;border-top:1px solid var(--line)}
+.trow .pos{font-family:var(--bebas);font-size:20px;color:var(--gold);text-align:center}
+.trow .ph{width:30px;height:30px;border-radius:50%;background:var(--navy) center/cover no-repeat;display:flex;align-items:center;justify-content:center;font-family:var(--bebas);font-size:13px;color:var(--muted)}
+.trow .nm{font-weight:700;font-size:14px;line-height:1.15}
+.trow .nm small{display:block;font-weight:400;color:var(--muted);font-size:11.5px;font-family:var(--mono)}
+.trow .w{font-family:var(--bebas);font-size:22px}
+.trow.forced .pos{color:var(--red)}
+.tag{font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:99px;background:rgba(255,107,107,.18);color:var(--red);margin-left:6px;vertical-align:2px}
+.fin-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin:22px 0}
+.rounds-tbl{width:100%;border-collapse:collapse;margin-top:18px;font-size:13.5px}
+.rounds-tbl th{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);text-align:left;padding:8px 6px;font-weight:400}
+.rounds-tbl td{padding:8px 6px;border-top:1px solid var(--line)}
+.rounds-tbl td.r{text-align:right;font-family:var(--mono)}
+@media (max-width:860px){
+  #result.on{grid-template-columns:1fr;grid-template-rows:42vh 1fr}
+  .res-score{bottom:10px;padding:10px 14px}.res-score .pts{font-size:32px}
+  .teams,.fin-totals{grid-template-columns:1fr}
+  .slots{gap:3px}.slot span{display:none}
+}
+
+/* leaflet tweaks */
+.leaflet-container{background:#a9c6d8;font-family:var(--sans)}
+.pinI{width:26px;height:26px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 2px 6px rgba(0,0,0,.5);border:3px solid #fff}
+.pinI.guess{background:var(--navy)}
+.pinI.ans{background:var(--gold2)}
+.pinI.flag{background:#e04848}
+.leaflet-tooltip.lbl{background:var(--navy);color:#fff;border:0;font-family:var(--mono);font-size:11px;box-shadow:var(--shadow)}
+.leaflet-tooltip.lbl::before{display:none}
+
+#toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,30px);opacity:0;z-index:9999;background:var(--navy);color:#fff;padding:12px 18px;border-radius:12px;box-shadow:var(--shadow),inset 0 0 0 1px var(--gold);transition:.25s;font-size:14px;pointer-events:none}
+#toast.on{transform:translate(-50%,0);opacity:1}
+.modal{position:fixed;inset:0;z-index:9000;background:rgba(4,10,16,.72);display:none;align-items:center;justify-content:center;padding:16px}
+.modal.on{display:flex}
+.modal .box{max-width:440px;width:100%;background:var(--navy2);border-radius:20px;padding:24px;box-shadow:var(--shadow),inset 0 0 0 1px var(--line);text-align:center}
+.modal h3{font-family:var(--bebas);font-weight:400;font-size:34px;margin:0 0 6px}
+.modal p{color:#c9d6e2;line-height:1.5;margin:0 0 18px}
+.modal .row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute"><defs>
+<symbol id="logoPin" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#fbcc7a"/><path d="M32 11c-8.3 0-15 6.5-15 14.6C17 36.4 32 53 32 53s15-16.6 15-27.4C47 17.5 40.3 11 32 11z" fill="#0d1f2d"/><circle cx="32" cy="25.5" r="6.5" fill="#fff"/><path d="M27.6 22.2c1.6 1.8 1.6 4.8 0 6.6M36.4 22.2c-1.6 1.8-1.6 4.8 0 6.6" stroke="#e04848" stroke-width="1.2" fill="none"/></symbol>
+</defs></svg>
+
+<!-- ================= HOME ================= -->
+<section id="home" class="screen on">
+  <div class="grid-bg"></div>
+  <div class="home-wrap">
+    <div class="topbar">
+      <div class="brand"><svg class="pin"><use href="#logoPin"/></svg><div><b>GEOBASEBALL</b><small>A Jomboy Media game</small></div></div>
+      <div id="resumeBox"></div>
+    </div>
+    <div class="hero">
+      <h1>GEO<br>BASEBALL</h1>
+      <p>You've been dropped somewhere in America. Figure out where you are, then draft a big leaguer who was born there. Nine rounds, nine spots, one lineup. Most career WAR wins.</p>
+    </div>
+
+    <div class="modes">
+      <div class="mode daily">
+        <div class="art">📅</div>
+        <div class="chip" id="dailyDate">Daily</div>
+        <h2>Daily Challenge</h2>
+        <p>Same nine towns for everyone today. Moving allowed, 2:00 a round, one shot. Compare lineups with the group chat.</p>
+        <div id="dailyCta"></div>
+      </div>
+      <div class="mode">
+        <div class="art">🗺️</div>
+        <div class="chip">Classic</div>
+        <h2>Classic Game</h2>
+        <p>Nine random hometowns. Set your own rules, then send the exact same game to a friend.</p>
+        <div class="settings">
+          <div class="seg"><label>Time per round</label><div class="opts" id="optTime">
+            <button data-v="0" class="on">None</button><button data-v="180">3:00</button><button data-v="120">2:00</button><button data-v="60">1:00</button><button data-v="30">0:30</button></div></div>
+          <div class="seg"><label>Movement</label><div class="opts" id="optMove">
+            <button data-v="move" class="on">Moving</button><button data-v="nmpz">No move / pan / zoom</button></div></div>
+        </div>
+        <button class="btn" id="playClassic">▶ PLAY</button>
+      </div>
+    </div>
+
+    <div class="howto">
+      <div class="step"><div class="n">01</div><b>Look around</b><span>You land on a real street in a town where a big leaguer was born. Walk, pan, read the signs.</span></div>
+      <div class="step"><div class="n">02</div><b>Drop your pin</b><span>Guess on the map. Closer is more points, up to 5,000 a round.</span></div>
+      <div class="step"><div class="n">03</div><b>Draft or spin</b><span>Pin in the right state? Pick anyone born in that state. Miss it and the wheel picks for you.</span></div>
+      <div class="step"><div class="n">04</div><b>Fill the nine</b><span>C, 1B, 2B, 3B, SS, LF, CF, RF, P. Players can only play spots they actually played. Then see the best nine you could've built.</span></div>
+    </div>
+    <div class="statsrow" id="myStats"></div>
+    <div class="foot">5,619 live-ball-era big leaguers (1920 on), including the Negro Leagues · career WAR from Baseball Reference · bios from the MLB Stats API<br>Street View imagery © Google · Map data © Google · Not affiliated with MLB or Google</div>
+  </div>
+</section>
+
+<!-- ================= GAME ================= -->
+<section id="game" class="screen">
+  <div id="sv"></div>
+  <div id="svBlock"></div>
+  <div id="svLoading"><div class="spinner"></div><div class="mono" style="color:var(--muted);font-size:12px;letter-spacing:.14em">DROPPING YOU IN…</div></div>
+
+  <div class="hud-top">
+    <button class="hud-brand" id="hudHome" title="Back to menu"><svg width="30" height="30"><use href="#logoPin"/></svg><b>GEOBASEBALL</b></button>
+    <div class="hud-stats">
+      <div class="hud-stat"><small>Round</small><b id="hRound">1 / 9</b></div>
+      <div class="hud-stat"><small>Score</small><b id="hScore">0</b></div>
+      <div class="hud-stat"><small>WAR</small><b id="hWar">0.0</b></div>
+      <div class="hud-stat timer" id="hTimerBox" style="display:none"><small>Time</small><b id="hTimer">2:00</b></div>
+    </div>
+  </div>
+  <div class="lineup-strip" id="strip"></div>
+
+  <div class="hud-left">
+    <button class="round-btn" id="btnStart" data-tip="Back to start">⚑</button>
+    <button class="round-btn" id="btnStuck" data-tip="No Street View? New spot, same state">⟳</button>
+  </div>
+
+  <div id="guessWrap">
+    <div style="position:relative">
+      <div id="miniMap"></div>
+      <div class="mm-tools"><button id="mmPin" title="Keep map open">📌</button><button id="mmWide" title="Bigger map">⤢</button></div>
+      <button id="closeMap">✕</button>
+    </div>
+    <button class="btn" id="guessBtn" disabled>PLACE YOUR PIN ON THE MAP</button>
+  </div>
+  <button class="btn" id="mapToggle">🗺 MAP</button>
+</section>
+
+<!-- ================= ROUND RESULT ================= -->
+<section id="result" class="screen">
+  <div id="resMap"><div class="lmap" id="resLMap"></div>
+    <div class="res-score">
+      <div class="pts" id="rPts">0 <small>points</small></div>
+      <div class="bar"><i id="rBar"></i></div>
+      <div class="dist" id="rDist"></div>
+    </div>
+  </div>
+  <div id="draft"></div>
+</section>
+
+<!-- ================= FINAL ================= -->
+<section id="final" class="screen"><div class="fin-wrap" id="finWrap"></div></section>
+
+<div class="modal" id="modal"><div class="box" id="modalBox"></div></div>
+<div id="toast"></div>
+
+<script src="players.js?v=1"></script>
+<script src="locations.js?v=1"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
+<script>
+"use strict";
+/* ==========================================================
+   DATA
+   ========================================================== */
+const D = window.GEO_DATA, LOCS = window.GEO_LOCS || {};
+const SN = D.stateNames;
+const POS = ['C','1B','2B','3B','SS','LF','CF','RF','P'];
+const ROUNDS = 9;
+const BY_ID = new Map();
+const POOL = {};        // st -> players sorted by WAR desc
+const CITIES = {};      // st -> [{c,lat,lng,n}]
+for (const [st, arr] of Object.entries(D.states)) {
+  POOL[st] = arr.slice().sort((a,b)=>b.w-a.w);
+  const cm = new Map();
+  for (const p of arr) {
+    p.st = st; BY_ID.set(p.id, p);
+    if (!p.e || !p.e.length) p.e = [p.p];
+    const ll = LOCS[st+'|'+(p.c||'').trim()];
+    if (!ll) continue;
+    const k = p.c.trim();
+    if (!cm.has(k)) cm.set(k, {c:k, lat:ll[0], lng:ll[1], n:0});
+    cm.get(k).n++;
+  }
+  CITIES[st] = [...cm.values()];
+}
+const PLAYABLE = Object.keys(POOL).filter(s => CITIES[s].length && POOL[s].length >= 12);
+
+/* ==========================================================
+   UTIL
+   ========================================================== */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function hashStr(s){let h1=0xdeadbeef^s.length,h2=0x41c6ce57^s.length;for(let i=0;i<s.length;i++){const c=s.charCodeAt(i);h1=Math.imul(h1^c,2654435761);h2=Math.imul(h2^c,1597334677)}
+  h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return (h2>>>0)*4294967296+(h1>>>0)}
+function rngFrom(seed){let a=hashStr(String(seed))>>>0;return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function weightedOrder(items, wfn, rng){return items.map(it=>({it,k:Math.pow(rng(),1/Math.max(1e-6,wfn(it)))})).sort((a,b)=>b.k-a.k).map(x=>x.it)}
+function haversineKm(a,b){const R=6371.0088,toR=Math.PI/180;const dLa=(b.lat-a.lat)*toR,dLo=(b.lng-a.lng)*toR;
+  const s=Math.sin(dLa/2)**2+Math.cos(a.lat*toR)*Math.cos(b.lat*toR)*Math.sin(dLo/2)**2;return 2*R*Math.asin(Math.sqrt(s))}
+const scoreFor = km => km < 0.05 ? 5000 : Math.round(5000*Math.exp(-km/450));
+const fmtInt = n => Math.round(n).toLocaleString('en-US');
+const fmtWar = w => (Math.round(w*10)/10).toFixed(1);
+const fmtMi = km => { const mi = km*0.621371; return mi < 1 ? `${Math.round(mi*5280).toLocaleString()} ft` : mi < 10 ? `${mi.toFixed(1)} mi` : `${fmtInt(mi)} mi`; };
+const todayKey = () => { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+const headshot = id => `https://img.mlbstatic.com/mlb-photos/image/upload/w_240,q_auto:good/v1/people/${id}/headshot/67/current`;
+const initials = n => n.split(/\s+/).filter(w=>!/^(jr|sr|ii|iii)\.?$/i.test(w)).map(w=>w[0]).slice(0,2).join('');
+const cleanName = n => n.replace(/\s+Sr\.$/,'');
+function photoDiv(p, cls){ // background image w/ monogram fallback
+  const id = 'ph'+Math.random().toString(36).slice(2,8);
+  queueMicrotask(()=>{ const el=document.getElementById(id); if(!el) return; const im=new Image(); im.onload=()=>{ if(im.naturalWidth>40){el.style.backgroundImage=`url("${im.src}")`; el.textContent='';} }; im.src=headshot(p.id); });
+  return `<div class="${cls}" id="${id}">${esc(initials(p.n))}</div>`;
+}
+function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('on');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('on'),2200)}
+const LS = { get(k,d){try{const v=localStorage.getItem('gb_'+k);return v==null?d:JSON.parse(v)}catch{return d}}, set(k,v){try{localStorage.setItem('gb_'+k,JSON.stringify(v))}catch{}} , del(k){try{localStorage.removeItem('gb_'+k)}catch{}} };
+
+/* ==========================================================
+   STATE SHAPES (for "right state" check)
+   ========================================================== */
+let SHAPES = null; // st -> array of polygons (array of rings [[lng,lat],...])
+const NAME2ST = Object.fromEntries(Object.entries(SN).map(([k,v])=>[v,k]));
+NAME2ST['United States Virgin Islands']='VI';
+fetch('https://cdn.jsdelivr.net/npm/us-atlas@3.0.1/states-10m.json').then(r=>r.json()).then(us=>{
+  const fc = topojson.feature(us, us.objects.states); SHAPES = {};
+  for (const f of fc.features) {
+    const st = NAME2ST[f.properties.name]; if (!st) continue;
+    const g = f.geometry; SHAPES[st] = g.type==='Polygon' ? [g.coordinates] : g.coordinates;
+  }
+}).catch(()=>{});
+function ringHas(ring,x,y){let c=false;for(let i=0,j=ring.length-1;i<ring.length;j=i++){const[xi,yi]=ring[i],[xj,yj]=ring[j];if((yi>y)!==(yj>y)&&x<(xj-xi)*(y-yi)/(yj-yi)+xi)c=!c}return c}
+function inState(st, ll){
+  const polys = SHAPES && SHAPES[st];
+  if (!polys) return null;
+  return polys.some(poly => ringHas(poly[0], ll.lng, ll.lat) && !poly.slice(1).some(h=>ringHas(h, ll.lng, ll.lat)));
+}
+
+/* ==========================================================
+   GAME MODEL
+   ========================================================== */
+let G = null; // current game
+function newGame({seed, daily=false, time=0, move='move'}){
+  const rng = rngFrom('rounds|'+seed);
+  const avail = PLAYABLE.slice();
+  const rounds = [];
+  for (let i=0;i<ROUNDS;i++){
+    const pick = weightedOrder(avail, s=>Math.sqrt(POOL[s].length), rng)[0];
+    avail.splice(avail.indexOf(pick),1);
+    const cities = weightedOrder(CITIES[pick], c=>Math.sqrt(c.n)+.3, rng).slice(0,8)
+      .map(c=>({c:c.c, lat:c.lat, lng:c.lng, h:Math.floor(rng()*360)}));
+    rounds.push({st:pick, cities, ci:0});
+  }
+  G = { v:1, seed, daily, time, move, rounds, idx:0, phase:'play', lineup:{}, startedAt:null, deadline:null };
+  save();
+}
+const save = () => LS.set('game', G);
+const cur = () => G.rounds[G.idx];
+const openSlots = () => POS.filter(p => !G.lineup[p]);
+const totalScore = () => G.rounds.reduce((s,r)=>s+(r.pts||0),0);
+const totalWar = () => Object.values(G.lineup).reduce((s,x)=>s+(BY_ID.get(x.id)?.w||0),0);
+const usedIds = () => new Set(Object.values(G.lineup).map(x=>x.id));
+const shareUrl = () => { const u = new URL(location.href.split('#')[0].split('?')[0]); if(G.daily) u.searchParams.set('daily','1'); else { u.searchParams.set('seed', G.seed); if (G.time) u.searchParams.set('t', G.time); if (G.move!=='move') u.searchParams.set('m', G.move); } return u.toString(); };
+
+/* ==========================================================
+   SCREENS
+   ========================================================== */
+function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on', s.id===id)); }
+
+/* ---------- HOME ---------- */
+function renderHome(){
+  show('home');
+  const dk = todayKey();
+  $('#dailyDate').textContent = 'Daily · ' + new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+  const done = LS.get('daily_'+dk, null);
+  $('#dailyCta').innerHTML = done
+    ? `<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><span class="chip" style="background:rgba(95,211,141,.15);color:var(--green)">✓ Played today</span>
+       <b class="bebas" style="font-size:24px">${fmtInt(done.score)} pts · ${fmtWar(done.war)} WAR</b>
+       <button class="btn small ghost" id="dailyShare">Copy result</button></div>`
+    : `<button class="btn" id="playDaily">▶ PLAY TODAY'S</button>`;
+  $('#playDaily')?.addEventListener('click', ()=>{ newGame({seed:'daily|'+dk, daily:true, time:120, move:'move'}); startRound(); });
+  $('#dailyShare')?.addEventListener('click', ()=>copy(done.share));
+  const g = LS.get('game', null);
+  $('#resumeBox').innerHTML = (g && g.phase!=='done') ? `<button class="btn small ghost" id="resume" style="white-space:nowrap">↩ Resume R${g.idx+1}</button>` : '';
+  $('#resume')?.addEventListener('click', ()=>{ G = g; resume(); });
+  const st = LS.get('stats', {games:0,bestWar:0,bestScore:0});
+  $('#myStats').innerHTML = st.games ? `<span class="chip">Games ${st.games}</span><span class="chip">Best score ${fmtInt(st.bestScore)}</span><span class="chip">Best lineup ${fmtWar(st.bestWar)} WAR</span>` : '';
+}
+function segInit(id){ const el=$(id); el.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;el.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));LS.set(id,b.dataset.v)});
+  const v=LS.get(id,null); if(v!=null) el.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.v===String(v))); }
+segInit('#optTime'); segInit('#optMove');
+const segVal = id => $(id+' button.on').dataset.v;
+$('#playClassic').addEventListener('click', ()=>{
+  newGame({seed: Math.random().toString(36).slice(2,10), time:+segVal('#optTime'), move:segVal('#optMove')});
+  startRound();
+});
+
+function resume(){
+  if (G.phase==='play') startRound(true);
+  else if (G.phase==='result') showResult();
+  else if (G.phase==='final') showFinal();
+}
+
+/* ---------- PLAY ---------- */
+let miniMap, guessMarker = null, guessLL = null, timerInt = null;
+function svUrl(c){ return `https://www.google.com/maps?layer=c&cbll=${c.lat},${c.lng}&cbp=12,${c.h},0,0,0&output=svembed&hl=en`; }
+function loadSV(){
+  const r = cur(), c = r.cities[r.ci];
+  $('#svLoading').classList.remove('gone');
+  const sv = $('#sv'); sv.innerHTML = '';
+  const f = document.createElement('iframe');
+  f.allow = 'accelerometer; gyroscope'; f.referrerPolicy = 'no-referrer-when-downgrade';
+  f.onload = () => setTimeout(()=>$('#svLoading').classList.add('gone'), 1400);
+  f.src = svUrl(c); sv.appendChild(f);
+  $('#svBlock').classList.toggle('on', G.move==='nmpz');
+}
+function renderStrip(){
+  $('#strip').innerHTML = POS.map(p=>{ const x=G.lineup[p]; const pl=x&&BY_ID.get(x.id);
+    return `<div class="ls-slot ${x?(x.forced?'forced':'full'):''}" title="${pl?esc(pl.n)+' · '+fmtWar(pl.w)+' WAR':p+' open'}"><span>${p}</span>${pl?`<i>${fmtWar(pl.w)}</i>`:''}</div>`}).join('');
+  $('#hRound').textContent = `${G.idx+1} / ${ROUNDS}`;
+  $('#hScore').textContent = fmtInt(totalScore());
+  $('#hWar').textContent = fmtWar(totalWar());
+}
+function initMiniMap(){
+  if (miniMap) return;
+  miniMap = L.map('miniMap', {zoomControl:false, attributionControl:true, worldCopyJump:true, minZoom:2}).setView([39.5,-97],3);
+  tiles().addTo(miniMap);
+  L.control.zoom({position:'bottomright'}).addTo(miniMap);
+  miniMap.on('click', e => { if (G?.phase!=='play') return; setGuess(e.latlng); });
+}
+const tiles = () => L.tileLayer('https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&hl=en&scale=2',{subdomains:'0123',maxZoom:19,attribution:'Map data © Google'});
+const pinIcon = cls => L.divIcon({className:'', html:`<div class="pinI ${cls}"></div>`, iconSize:[26,26], iconAnchor:[13,30]});
+function setGuess(ll){
+  guessLL = {lat:ll.lat, lng:((ll.lng+540)%360)-180};
+  if (guessMarker) guessMarker.setLatLng(ll); else guessMarker = L.marker(ll,{icon:pinIcon('guess')}).addTo(miniMap);
+  const b = $('#guessBtn'); b.disabled = false; b.textContent = 'GUESS';
+}
+function startRound(isResume){
+  show('game'); initMiniMap();
+  G.phase = 'play';
+  if (!isResume || !G.startedAt) { G.startedAt = Date.now(); G.deadline = G.time ? Date.now()+G.time*1000 : null; }
+  save();
+  if (guessMarker) { guessMarker.remove(); guessMarker = null; } guessLL = null;
+  const b = $('#guessBtn'); b.disabled = true; b.textContent = 'PLACE YOUR PIN ON THE MAP';
+  $('#guessWrap').classList.remove('open');
+  setTimeout(()=>{ miniMap.invalidateSize(); miniMap.setView([39.5,-97],3); }, 50);
+  renderStrip(); loadSV(); startTimer();
+}
+function startTimer(){
+  clearInterval(timerInt);
+  const box = $('#hTimerBox');
+  if (!G.deadline) { box.style.display='none'; return; }
+  box.style.display='';
+  const tick = () => {
+    const left = Math.max(0, G.deadline - Date.now());
+    const s = Math.ceil(left/1000);
+    $('#hTimer').textContent = `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+    box.classList.toggle('low', s <= 10);
+    if (left <= 0) { clearInterval(timerInt); makeGuess(true); }
+  };
+  tick(); timerInt = setInterval(tick, 250);
+}
+function makeGuess(timeUp){
+  if (G.phase !== 'play') return;
+  clearInterval(timerInt);
+  const r = cur(), c = r.cities[r.ci];
+  const ans = {lat:c.lat, lng:c.lng};
+  if (guessLL) {
+    const km = haversineKm(guessLL, ans);
+    let ok = inState(r.st, guessLL);
+    if (ok === null) ok = km < 120; // shapes didn't load: fall back to distance
+    if (!ok && km < 25) ok = true;  // border-town mercy
+    Object.assign(r, {guess:guessLL, km, pts:scoreFor(km), ok});
+  } else {
+    Object.assign(r, {guess:null, km:null, pts:0, ok:false, timeUp:!!timeUp});
+  }
+  G.phase = 'result'; save();
+  showResult();
+}
+$('#guessBtn').addEventListener('click', ()=>makeGuess(false));
+document.addEventListener('keydown', e=>{
+  if (G?.phase==='play' && (e.key===' '||e.key==='Enter') && guessLL && document.activeElement?.tagName!=='INPUT') { e.preventDefault(); makeGuess(false); }
+});
+$('#btnStart').addEventListener('click', loadSV);
+$('#btnStuck').addEventListener('click', ()=>{
+  const r = cur(); r.ci = (r.ci+1) % r.cities.length; save(); loadSV();
+  toast(r.cities.length>1 ? 'New spot, same state' : 'Reloading this spot');
+});
+$('#mmPin').addEventListener('click', e=>{ $('#guessWrap').classList.toggle('pinned'); e.currentTarget.classList.toggle('on'); setTimeout(()=>miniMap.invalidateSize(),250); });
+$('#mmWide').addEventListener('click', e=>{ $('#guessWrap').classList.toggle('wide'); e.currentTarget.classList.toggle('on'); setTimeout(()=>miniMap.invalidateSize(),250); });
+$('#guessWrap').addEventListener('transitionend', ()=>miniMap && miniMap.invalidateSize());
+$('#mapToggle').addEventListener('click', ()=>{ $('#guessWrap').classList.add('open'); setTimeout(()=>miniMap.invalidateSize(),260); });
+$('#closeMap').addEventListener('click', ()=>$('#guessWrap').classList.remove('open'));
+$('#hudHome').addEventListener('click', ()=>confirmBox('Leave this game?', 'Your game is saved. You can pick it back up from the menu.', 'Back to menu', ()=>{ clearInterval(timerInt); renderHome(); }));
+
+/* ---------- RESULT + DRAFT ---------- */
+let resMap, resLayer;
+let draftUI = { sel:null, q:'', pos:'ALL', limit:40, spun:false };
+function initResMap(){
+  if (resMap) return;
+  resMap = L.map('resLMap', {zoomControl:true, worldCopyJump:true});
+  tiles().addTo(resMap);
+  resLayer = L.layerGroup().addTo(resMap);
+}
+function stateLayer(st, style){
+  const polys = SHAPES && SHAPES[st]; if (!polys) return null;
+  return L.polygon(polys.map(poly=>poly.map(ring=>ring.map(([x,y])=>[y,x]))), style);
+}
+function showResult(){
+  show('result'); initResMap(); clearInterval(timerInt);
+  const r = cur(), c = r.cities[r.ci];
+  draftUI = { sel:null, q:'', pos:'ALL', limit:40, spun:false };
+  setTimeout(()=>{
+    resMap.invalidateSize(); resLayer.clearLayers();
+    const sl = stateLayer(r.st, {color: r.ok?'#2f9a5a':'#e04848', weight:2, fillOpacity:.08}); if (sl) sl.addTo(resLayer);
+    const a = L.marker([c.lat,c.lng],{icon:pinIcon('ans')}).addTo(resLayer).bindTooltip(`${c.c}, ${r.st}`,{permanent:true,direction:'top',offset:[0,-28],className:'lbl'});
+    if (r.guess) {
+      L.marker([r.guess.lat,r.guess.lng],{icon:pinIcon('guess')}).addTo(resLayer);
+      L.polyline([[r.guess.lat,r.guess.lng],[c.lat,c.lng]],{color:'#0d1f2d',weight:3,dashArray:'6 8'}).addTo(resLayer);
+      resMap.fitBounds(L.latLngBounds([[r.guess.lat,r.guess.lng],[c.lat,c.lng]]).pad(.35), {maxZoom:10});
+    } else resMap.setView([c.lat,c.lng], 6);
+  }, 30);
+  $('#rPts').innerHTML = `${fmtInt(r.pts)} <small>points</small>`;
+  $('#rBar').style.width = '0';
+  setTimeout(()=>$('#rBar').style.width = (r.pts/50)+'%', 80);
+  $('#rDist').innerHTML = r.guess ? `Your guess was <b>${fmtMi(r.km)}</b> from the right spot.` : (r.timeUp ? `Time ran out before you dropped a pin.` : `No guess this round.`);
+  renderDraft();
+}
+function eligibleFor(p, open){ return p.e.filter(x=>open.includes(x)); }
+function draftPool(){
+  const r = cur(), open = openSlots(), used = usedIds();
+  let pool = POOL[r.st].filter(p => !used.has(p.id) && eligibleFor(p, open).length);
+  let oop = false;
+  if (!pool.length) { pool = POOL[r.st].filter(p => !used.has(p.id)); oop = true; } // nobody fits: out of position allowed
+  return {pool, oop};
+}
+function renderDraft(){
+  const r = cur(), c = r.cities[r.ci], el = $('#draft');
+  const here = POOL[r.st].filter(p => (p.c||'').trim()===c.c);
+  const picked = r.pick && BY_ID.get(r.pick.id);
+  const fullName = `${c.c}, ${SN[r.st]}`;
+  let h = `<div><div class="d-kicker">Round ${G.idx+1} of ${ROUNDS} · You were in</div><h2 class="d-place">${esc(fullName)}</h2>
+    <div class="d-kicker" style="margin-top:6px;text-transform:none;letter-spacing:.04em">${here.length} big leaguer${here.length===1?'':'s'} born here${here.length?': '+here.slice(0,3).map(p=>esc(cleanName(p.n))).join(', ')+(here.length>3?'…':''):''}</div></div>`;
+  h += r.ok
+    ? `<div class="verdict ok"><div class="ic">🎯</div><div><b>Right state: scout's choice</b><span>Draft anyone born in ${esc(SN[r.st])}.</span></div></div>`
+    : `<div class="verdict no"><div class="ic">🎰</div><div><b>Wrong state: spin the wheel</b><span>${r.guess?`Your pin wasn't in ${esc(SN[r.st])}.`:'No pin, no choice.'} The wheel picks from ${esc(SN[r.st])}.</span></div></div>`;
+  h += `<div class="slots">${POS.map(p=>{const x=G.lineup[p];const pl=x&&BY_ID.get(x.id);return `<div class="slot ${x?(x.forced?'forced':'full'):''}" data-slot="${p}"><b>${p}</b><span>${pl?esc(pl.n.split(' ').slice(-1)[0]):'—'}</span></div>`}).join('')}</div>`;
+
+  if (picked) {
+    h += cardHTML(picked, r.st, c.c);
+    h += `<div class="verdict ${r.pick.forced?'no':'ok'}" style="padding:10px 14px"><div><b>${esc(cleanName(picked.n))} → ${r.pick.slot}</b><span>${fmtWar(picked.w)} WAR added. Lineup total ${fmtWar(totalWar())}.</span></div></div>`;
+    h += `<button class="btn green" id="nextBtn" style="width:100%">${G.idx+1<ROUNDS?'NEXT ROUND ▶':'SEE YOUR NINE ▶'}</button>`;
+    el.innerHTML = h; $('#nextBtn').onclick = nextRound; el.scrollTop = 0; return;
+  }
+  const {pool, oop} = draftPool();
+  if (oop) h += `<div class="chip" style="background:rgba(255,107,107,.15);color:var(--red)">Nobody from ${esc(SN[r.st])} fits your open spots. Out of position is allowed this round.</div>`;
+  if (r.ok) {
+    const posBtns = ['ALL', ...openSlots()];
+    h += `<input class="search" id="dq" placeholder="Search ${pool.length} players from ${esc(SN[r.st])}…" value="${esc(draftUI.q)}" autocomplete="off">
+      <div class="filters" id="dpos">${posBtns.map(p=>`<button data-p="${p}" class="${draftUI.pos===p?'on':''}">${p==='ALL'?'All open spots':p}</button>`).join('')}</div>
+      <div id="dsel"></div><div class="plist" id="dlist"></div>`;
+    el.innerHTML = h;
+    $('#dq').addEventListener('input', e=>{ draftUI.q=e.target.value; draftUI.limit=40; renderList(); });
+    $('#dpos').addEventListener('click', e=>{ const b=e.target.closest('button'); if(!b) return; draftUI.pos=b.dataset.p; draftUI.limit=40; $('#dpos').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b)); renderList(); });
+    renderList(); renderSel();
+  } else {
+    h += `<div class="wheel" id="wheel"><div class="mark"></div><div class="reel" id="reel"><div style="color:var(--muted)">${pool.length} names on the wheel</div></div></div>
+      <button class="btn" id="spinBtn" style="width:100%">🎰 SPIN THE WHEEL</button><div id="dsel"></div>`;
+    el.innerHTML = h;
+    $('#spinBtn').onclick = spin;
+    if (draftUI.spun) renderSel();
+  }
+  el.scrollTop = 0;
+}
+function renderList(){
+  const r = cur(), c = r.cities[r.ci], {pool, oop} = draftPool();
+  const q = draftUI.q.trim().toLowerCase();
+  let list = pool.filter(p => (draftUI.pos==='ALL' || p.e.includes(draftUI.pos)) && (!q || p.n.toLowerCase().includes(q) || (p.c||'').toLowerCase().includes(q)));
+  // players born in this exact town float to the top of their WAR tier
+  const shown = list.slice(0, draftUI.limit);
+  const open = openSlots();
+  $('#dlist').innerHTML = shown.map(p=>{
+    const elig = oop ? open : eligibleFor(p, open);
+    return `<button class="prow ${draftUI.sel===p.id?'sel':''}" data-id="${p.id}">${photoDiv(p,'ph')}
+      <div><div class="nm">${esc(cleanName(p.n))}${p.hof?' <span class="chip" style="padding:1px 6px;background:var(--gold);color:var(--navy)">HOF</span>':''}</div>
+      <div class="meta">${elig.join(' · ')} · ${esc(p.y)} · ${(p.c||'').trim()===c.c?'<span class="here">📍 born here</span>':esc(p.c)}</div></div>
+      <div class="war">${fmtWar(p.w)}<small>WAR</small></div></button>`;
+  }).join('') + (list.length > shown.length ? `<button class="more" id="dmore">Show more (${list.length-shown.length} left)</button>` : '') + (!list.length ? `<div class="more">Nobody matches.</div>` : '');
+  $('#dlist').querySelectorAll('.prow').forEach(b=>b.onclick=()=>{ draftUI.sel=+b.dataset.id; $('#dlist').querySelectorAll('.prow').forEach(x=>x.classList.toggle('sel',x===b)); renderSel(true); });
+  $('#dmore')?.addEventListener('click', ()=>{ draftUI.limit += 60; renderList(); });
+}
+function renderSel(scroll){
+  const box = $('#dsel'); if (!box) return;
+  const p = draftUI.sel && BY_ID.get(draftUI.sel); if (!p) { box.innerHTML=''; return; }
+  const r = cur(), c = r.cities[r.ci], {oop} = draftPool();
+  const elig = oop ? openSlots() : eligibleFor(p, openSlots());
+  box.innerHTML = cardHTML(p, r.st, c.c, `<div class="pc-actions"><span class="lbl">${r.ok?'DRAFT HIM AT':'THE WHEEL SAYS · PUT HIM AT'}</span>${elig.map(s=>`<button class="btn small" data-slot="${s}">${s}</button>`).join('')}</div>`);
+  box.querySelectorAll('[data-slot]').forEach(b=>b.onclick=()=>draft(p, b.dataset.slot, !r.ok, oop));
+  // highlight slots he can take
+  document.querySelectorAll('#draft .slot').forEach(s=>s.classList.toggle('can', elig.includes(s.dataset.slot)));
+  if (scroll) box.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+function draft(p, slot, forced, oop){
+  const r = cur();
+  G.lineup[slot] = {id:p.id, forced:!!forced, oop:!!oop};
+  r.pick = {id:p.id, slot, forced:!!forced};
+  save(); renderDraft();
+}
+function spin(){
+  const r = cur(), {pool} = draftPool();
+  const rng = rngFrom(`wheel|${G.seed}|${G.idx}|${openSlots().join(',')}|${r.st}`);
+  const target = pool[Math.floor(rng()*pool.length)];
+  const names = []; for (let i=0;i<44;i++) names.push(pool[Math.floor(Math.random()*pool.length)]);
+  names.push(target); names.push(pool[Math.floor(Math.random()*pool.length)]);
+  const reel = $('#reel');
+  reel.style.transition = 'none'; reel.style.transform = 'translateY(0)';
+  reel.innerHTML = names.map(p=>`<div>${esc(cleanName(p.n))}</div>`).join('');
+  $('#spinBtn').disabled = true;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    reel.style.transition = 'transform 3.6s cubic-bezier(.12,.72,.12,1)';
+    reel.style.transform = `translateY(-${(names.length-2)*40}px)`;
+  }));
+  setTimeout(()=>{ draftUI.spun = true; draftUI.sel = target.id; $('#spinBtn').style.display='none'; renderSel(true); }, 3750);
+}
+function cardHTML(p, st, townHere, actions=''){
+  const born = `${esc(p.c)}, ${esc(SN[p.st]||p.st)}`;
+  const stats = [];
+  const isP = p.p==='P' || (p.pi && (!p.h || (p.pi.ip && parseFloat(p.pi.ip) > (p.h.pa||0)/4)));
+  if (isP && p.pi) { const x=p.pi; stats.push(['W-L',`${x.w}-${x.l}`],['ERA',x.era],['SO',fmtInt(x.so)],['WHIP',x.whip],['IP',Math.round(parseFloat(x.ip))],[x.sv>x.cg?'SV':'CG',x.sv>x.cg?x.sv:x.cg]); }
+  else if (p.h) { const x=p.h; stats.push(['AVG',x.avg],['HR',x.hr],['RBI',fmtInt(x.rbi)],['H',fmtInt(x.h)],['SB',x.sb],['OPS',x.ops]); }
+  const aw = [];
+  if (p.hof) aw.push(`<span class="hof">Hall of Fame</span>`);
+  (p.aw||[]).forEach(a=>aw.push(`<span>${esc(a)}</span>`));
+  if (p.ws) aw.push(`<span>${p.ws>1?p.ws+'× ':''}World Series champ</span>`);
+  const teams = (p.tm||[]).slice(0,4).join(' · ') + ((p.tm||[]).length>4?` · +${p.tm.length-4} more`:'');
+  return `<div class="pcard"><div class="pc-top">${photoDiv(p,'pc-photo')}
+    <div><div class="pc-name">${esc(cleanName(p.n))}</div>
+    <div class="pc-born">Born in <b>${born}</b>${(p.c||'').trim()===townHere?' 📍':''}</div>
+    <div class="pc-war"><b>${fmtWar(p.w)}</b><span>CAREER WAR</span></div></div></div>
+    <div class="pc-body">
+      <div class="pc-line"><b>Plays</b>${p.e.join(' · ')} &nbsp; <b>Career</b>${esc(p.y)} (${p.sn} seasons) &nbsp; <b>B/T</b>${esc(p.b)}/${esc(p.t)}</div>
+      <div class="pc-line"><b>Teams</b>${esc(teams)}</div>
+      ${stats.length?`<div class="pc-stats">${stats.map(([k,v])=>`<div><small>${k}</small><b>${esc(v)}</b></div>`).join('')}</div>`:''}
+      ${p.pk?`<div class="pc-line"><b>Best season</b>${fmtWar(p.pk)} WAR in ${esc(p.pky)} &nbsp; <a href="https://www.baseball-reference.com/players/${p.br[0]}/${p.br}.shtml" target="_blank" rel="noopener">Baseball Reference ↗</a></div>`:''}
+      ${aw.length?`<div class="pc-aw">${aw.slice(0,8).join('')}</div>`:''}
+      ${actions}
+    </div></div>`;
+}
+function nextRound(){
+  if (G.idx+1 < ROUNDS) { G.idx++; G.startedAt = null; G.phase='play'; save(); startRound(); }
+  else { G.phase='final'; save(); showFinal(); }
+}
+
+/* ---------- FINAL ---------- */
+function bestTeam(){
+  // one player per visited state, each spot a different man, max players then max WAR
+  const states = [...new Set(G.rounds.map(r=>r.st))];
+  const best = states.map(st => POS.map(pos => POOL[st].find(p=>p.e.includes(pos)) || null));
+  const memo = new Map();
+  function f(i, mask){
+    if (i===POS.length) return {n:0,w:0,pick:[]};
+    const key = i+'|'+mask; if (memo.has(key)) return memo.get(key);
+    let res = f(i+1, mask); res = {n:res.n, w:res.w, pick:[null, ...res.pick]};
+    for (let s=0;s<states.length;s++){
+      if (mask & (1<<s)) continue; const p = best[s][i]; if (!p) continue;
+      const sub = f(i+1, mask|(1<<s));
+      const cand = {n:sub.n+1, w:sub.w+p.w, pick:[p, ...sub.pick]};
+      if (cand.n>res.n || (cand.n===res.n && cand.w>res.w)) res = cand;
+    }
+    memo.set(key,res); return res;
+  }
+  return f(0,0);
+}
+function grade(w){
+  if (w>=560) return ['Immortal Nine','Cooperstown should save them a wing.'];
+  if (w>=440) return ['Dynasty','Banners every October.'];
+  if (w>=340) return ['World Series Favorite','Book the parade route.'];
+  if (w>=250) return ['Pennant Contender','They\'re playing deep into October.'];
+  if (w>=170) return ['Playoff Team','Wild card and a dream.'];
+  if (w>=100)  return ['.500 Club','Meaningful games in September.'];
+  if (w>=45)  return ['Scrappy Underdogs','Nobody wants to play these guys.'];
+  return ['Spring Training Squad','Heart of a champion. Back of the baseball card of a backup.'];
+}
+let finMap;
+function showFinal(){
+  show('final');
+  const score = totalScore(), war = totalWar(), [g, gsub] = grade(war);
+  const bt = bestTeam(), left = Math.max(0, bt.w - war);
+  const dots = G.rounds.map(r => r.ok ? '🟩' : '🟥').join('');
+  const share = `GEOBASEBALL${G.daily?' · Daily '+todayKey():''}\n📍 ${fmtInt(score)} / 45,000\n⚾ ${fmtWar(war)} WAR (${g})\n${dots}\n${shareUrl()}`;
+  if (G.phase !== 'done') {
+    const st = LS.get('stats',{games:0,bestWar:0,bestScore:0});
+    st.games++; st.bestWar=Math.max(st.bestWar,war); st.bestScore=Math.max(st.bestScore,score); LS.set('stats',st);
+    if (G.daily) LS.set('daily_'+todayKey(), {score, war, share});
+    G.phase='done'; save();
+  }
+  const myRows = POS.map(pos=>{ const x=G.lineup[pos]; const p=x&&BY_ID.get(x.id);
+    return p ? `<div class="trow ${x.forced?'forced':''}"><div class="pos">${pos}</div>${photoDiv(p,'ph')}<div class="nm">${esc(cleanName(p.n))}${x.forced?'<span class="tag">WHEEL</span>':''}${x.oop?'<span class="tag">OUT OF POS</span>':''}<small>${esc(p.c)}, ${p.st} · ${esc(p.y)}</small></div><div class="w">${fmtWar(p.w)}</div></div>`
+             : `<div class="trow"><div class="pos">${pos}</div><div></div><div class="nm" style="color:var(--muted)">Empty</div><div class="w">0.0</div></div>`; }).join('');
+  const bestRows = POS.map((pos,i)=>{ const p=bt.pick[i];
+    return p ? `<div class="trow"><div class="pos">${pos}</div>${photoDiv(p,'ph')}<div class="nm">${esc(cleanName(p.n))}<small>${esc(p.c)}, ${p.st} · ${esc(p.y)}</small></div><div class="w">${fmtWar(p.w)}</div></div>`
+             : `<div class="trow"><div class="pos">${pos}</div><div></div><div class="nm" style="color:var(--muted)">No one available</div><div class="w">—</div></div>`; }).join('');
+  const rows = G.rounds.map((r,i)=>{ const c=r.cities[r.ci]; const p=r.pick&&BY_ID.get(r.pick.id);
+    return `<tr><td class="mono">${i+1}</td><td>${esc(c.c)}, ${r.st}</td><td>${r.ok?'🎯 Right state':'🎰 Wheel'}</td><td class="r">${r.km==null?'—':fmtMi(r.km)}</td><td class="r">${fmtInt(r.pts||0)}</td><td>${p?esc(cleanName(p.n))+' ('+r.pick.slot+')':'—'}</td></tr>`}).join('');
+  $('#finWrap').innerHTML = `
+    <div class="topbar"><div class="brand"><svg class="pin" width="34" height="34"><use href="#logoPin"/></svg><div><b>GEOBASEBALL</b><small>${G.daily?'Daily challenge · '+todayKey():'Classic game'}</small></div></div></div>
+    <div class="fin-head"><div class="sub">Final</div><h1>${esc(g)}</h1><div style="color:#c9d6e2;margin-top:6px">${esc(gsub)}</div></div>
+    <div class="fin-totals">
+      <div class="tot"><small>Geo score</small><b>${fmtInt(score)}</b><span>of 45,000 · ${dots}</span></div>
+      <div class="tot"><small>Your lineup</small><b>${fmtWar(war)}</b><span>career WAR</span></div>
+      <div class="tot"><small>Left on the table</small><b>${fmtWar(left)}</b><span>WAR vs. the best nine from your states</span></div>
+    </div>
+    <div class="fin-actions">
+      <button class="btn" id="fShare">📋 Copy result</button>
+      ${G.daily?'':`<button class="btn ghost" id="fChal">🤝 Challenge a friend</button>`}
+      <button class="btn ghost" id="fAgain">▶ New game</button>
+      <button class="btn ghost" id="fHome">Menu</button>
+    </div>
+    <div id="finMap"></div>
+    <div class="teams">
+      <div class="team"><h3>Your nine <b>${fmtWar(war)}</b></h3><div class="sub">${Object.values(G.lineup).filter(x=>!x.forced).length} scouted · ${Object.values(G.lineup).filter(x=>x.forced).length} from the wheel</div>${myRows}</div>
+      <div class="team best"><h3>Best possible <b>${fmtWar(bt.w)}</b></h3><div class="sub">One player per state you visited, every man at a spot he actually played</div>${bestRows}</div>
+    </div>
+    <table class="rounds-tbl"><thead><tr><th>#</th><th>Town</th><th>Draft</th><th style="text-align:right">Off by</th><th style="text-align:right">Points</th><th>Pick</th></tr></thead><tbody>${rows}</tbody></table>
+    <div class="foot">Career WAR from Baseball Reference · Street View © Google · A Jomboy Media game</div>`;
+  $('#fShare').onclick = ()=>copy(share);
+  $('#fChal')?.addEventListener('click', ()=>copy(`Beat my GeoBaseball lineup: ${fmtInt(score)} pts, ${fmtWar(war)} WAR. Same nine towns: ${shareUrl()}`));
+  $('#fAgain').onclick = ()=>{ newGame({seed:Math.random().toString(36).slice(2,10), time:G.daily?0:G.time, move:G.move}); startRound(); };
+  $('#fHome').onclick = renderHome;
+  if (finMap) { finMap.remove(); finMap = null; }
+  setTimeout(()=>{
+    finMap = L.map('finMap', {scrollWheelZoom:false, worldCopyJump:true});
+    tiles().addTo(finMap);
+    const pts = [];
+    G.rounds.forEach((r,i)=>{ const c=r.cities[r.ci]; pts.push([c.lat,c.lng]);
+      L.marker([c.lat,c.lng],{icon:pinIcon('ans')}).addTo(finMap).bindTooltip(`${i+1}. ${c.c}, ${r.st}`,{direction:'top',offset:[0,-28],className:'lbl'});
+      if (r.guess){ pts.push([r.guess.lat,r.guess.lng]); L.marker([r.guess.lat,r.guess.lng],{icon:pinIcon('guess')}).addTo(finMap);
+        L.polyline([[r.guess.lat,r.guess.lng],[c.lat,c.lng]],{color:'#0d1f2d',weight:2,dashArray:'5 7'}).addTo(finMap); }
+    });
+    finMap.fitBounds(L.latLngBounds(pts).pad(.12));
+  }, 40);
+  $('#final').scrollTop = 0;
+}
+
+/* ---------- misc ---------- */
+function copy(text){
+  (navigator.clipboard?.writeText(text) || Promise.reject()).then(()=>toast('Copied. Paste it in the group chat.'))
+    .catch(()=>{ const t=document.createElement('textarea'); t.value=text; document.body.appendChild(t); t.select(); try{document.execCommand('copy');toast('Copied.')}catch{toast('Copy failed')} t.remove(); });
+}
+function confirmBox(title, body, ok, fn){
+  $('#modalBox').innerHTML = `<h3>${esc(title)}</h3><p>${esc(body)}</p><div class="row"><button class="btn" id="mOk">${esc(ok)}</button><button class="btn ghost" id="mNo">Stay</button></div>`;
+  $('#modal').classList.add('on');
+  $('#mOk').onclick = ()=>{ $('#modal').classList.remove('on'); fn(); };
+  $('#mNo').onclick = ()=>$('#modal').classList.remove('on');
+}
+
+/* ---------- boot ---------- */
+(function boot(){
+  const q = new URLSearchParams(location.search);
+  renderHome();
+  if (q.get('daily')) {
+    history.replaceState(null,'',location.pathname);
+    if (!LS.get('daily_'+todayKey(), null)) { newGame({seed:'daily|'+todayKey(), daily:true, time:120, move:'move'}); startRound(); }
+  } else if (q.get('seed')) {
+    const seed = q.get('seed').slice(0,40);
+    history.replaceState(null,'',location.pathname);
+    const t = +q.get('t')||0, m = q.get('m')==='nmpz'?'nmpz':'move';
+    $('#modalBox').innerHTML = `<h3>You've been challenged</h3><p>Same nine towns your friend got${t?`, ${Math.floor(t/60)}:${String(t%60).padStart(2,'0')} a round`:''}${m==='nmpz'?', no moving':''}. Build a better lineup.</p><div class="row"><button class="btn" id="mOk">▶ Accept</button><button class="btn ghost" id="mNo">Not now</button></div>`;
+    $('#modal').classList.add('on');
+    $('#mOk').onclick = ()=>{ $('#modal').classList.remove('on'); newGame({seed, time:t, move:m}); startRound(); };
+    $('#mNo').onclick = ()=>$('#modal').classList.remove('on');
+  }
+})();
+</script>
+</body>
+</html>
