@@ -185,7 +185,11 @@ a{color:var(--sky)}
 .ac li.on,.ac li:hover{background:#FFF3D6}
 .ac li b{font-weight:700}
 .ac li span{font-family:var(--cond);font-weight:600;font-size:14px;color:var(--ink2);white-space:nowrap}
-.ask .row{display:flex;gap:10px;margin-top:12px;align-items:center;flex-wrap:wrap}
+.ask .row{display:flex;gap:14px;margin-top:12px;align-items:center;flex-wrap:wrap;justify-content:space-between}
+.nclock{position:relative;flex:1;min-width:150px;max-width:220px;height:30px;border:2px solid var(--ink);border-radius:99px;overflow:hidden;background:var(--paper)}
+.nclock i{position:absolute;left:0;top:0;bottom:0;background:var(--gold);transition:width .2s linear}
+.nclock b{position:relative;display:flex;height:100%;align-items:center;justify-content:center;font-family:var(--cond);font-weight:800;font-size:17px}
+.nclock.low i{background:var(--red)}.nclock.low b{color:#fff}
 .linkbtn{font-family:var(--cond);font-weight:700;font-size:15px;color:var(--ink2);text-decoration:underline;text-underline-offset:3px}
 .msg{margin-top:10px;font-size:14.5px;color:var(--red-d);font-weight:600}
 /* card */
@@ -205,6 +209,11 @@ a{color:var(--sky)}
 .pc-stats small{display:block;font-family:var(--cond);font-weight:700;font-size:11px;color:var(--ink2);letter-spacing:.06em}
 .pc-stats b{font-family:var(--cond);font-weight:800;font-size:19px}
 .pc-stats.loading{border:1.5px dashed var(--ink3);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:var(--cond);font-weight:600;color:var(--ink3)}
+.pc-bio{font-size:15px;line-height:1.5;color:var(--ink)}
+.pc-bio:empty,.pc-teams:empty{display:none}
+.pc-teams{display:flex;flex-direction:column;gap:3px}
+.pc-teams div{display:flex;justify-content:space-between;gap:10px;font-size:14px;padding:3px 0;border-bottom:1px dashed var(--paper2)}
+.pc-teams div span{font-family:var(--cond);font-weight:700;color:var(--ink2);white-space:nowrap}
 .pc-aw{display:flex;flex-wrap:wrap;gap:5px}
 .pc-aw span{font-family:var(--cond);font-weight:700;font-size:13.5px;padding:2px 9px;border-radius:99px;border:1.5px solid var(--ink);background:#FFF3D6}
 .pc-aw span.hof{background:var(--gold)}
@@ -262,6 +271,23 @@ a{color:var(--sky)}
 .leaflet-tooltip.lbl{background:var(--ink);color:var(--paper);border:0;border-radius:8px;font-family:var(--cond);font-weight:700;font-size:14px;padding:3px 9px;box-shadow:none}
 .leaflet-tooltip.lbl::before{display:none}
 
+/* radio + sound */
+#radio{position:fixed;z-index:8000;left:12px;bottom:12px;display:flex;align-items:center;gap:8px;padding:6px 8px 6px 6px;background:var(--card);border:var(--bw) solid var(--ink);border-radius:14px;box-shadow:3px 3px 0 var(--ink)}
+body[data-screen="game"] #radio{left:12px;bottom:auto;top:64px}
+body[data-screen="result"] #radio{left:58px;bottom:auto;top:10px}
+#radio .yt{width:112px;height:63px;border-radius:8px;overflow:hidden;background:var(--ink);flex:none;border:1.5px solid var(--ink)}
+#radio .yt iframe,#radio .yt > div{width:112px;height:63px;display:block}
+#radio.min .yt{width:0;height:0;border:0}
+#radio .rc{display:flex;flex-direction:column;gap:5px}
+#radio .rt{font-family:var(--cond);font-weight:700;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#radio .rb{display:flex;gap:4px;align-items:center}
+#radio .rb button{width:28px;height:28px;border-radius:8px;border:2px solid var(--ink);background:var(--paper);display:flex;align-items:center;justify-content:center}
+#radio .rb button svg{width:14px;height:14px}
+#radio .rb button.off{background:var(--paper2);opacity:.6}
+#radio input[type=range]{width:64px;accent-color:var(--red)}
+#radio.min .rt,#radio.min input[type=range]{display:none}
+@media (max-width:780px){ #radio .yt{width:80px;height:45px} #radio .yt iframe,#radio .yt > div{width:80px;height:45px} #radio input[type=range]{display:none} #radio .rt{max-width:80px}
+  body[data-screen="game"] #radio{top:112px} body[data-screen="result"] #radio{display:none} }
 #toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,30px);opacity:0;z-index:9999;background:var(--ink);color:var(--paper);padding:11px 18px;border-radius:12px;transition:.25s;font-weight:600;pointer-events:none}
 #toast.on{transform:translate(-50%,0);opacity:1}
 .modal{position:fixed;inset:0;z-index:9000;background:rgba(31,39,51,.55);display:none;align-items:center;justify-content:center;padding:16px}
@@ -281,6 +307,9 @@ a{color:var(--sky)}
 <symbol id="i-map" viewBox="0 0 24 24"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zm0 0v14m6-12v14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/></symbol>
 <symbol id="i-pin" viewBox="0 0 24 24"><path d="M15 3l6 6-4 1-4 4 1 4-2 2-4-4-5 5M7 13l4 4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
 <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></symbol>
+<symbol id="i-note" viewBox="0 0 24 24"><path d="M9 18V5l11-2v13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/><circle cx="6" cy="18" r="3" fill="currentColor"/><circle cx="17" cy="16" r="3" fill="currentColor"/></symbol>
+<symbol id="i-next" viewBox="0 0 24 24"><path d="M5 5l9 7-9 7zM17 5v14" fill="currentColor" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/></symbol>
+<symbol id="i-sfx" viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
 <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5z" fill="currentColor"/></symbol>
 </defs></svg>
 
@@ -376,11 +405,23 @@ a{color:var(--sky)}
 <!-- ============ FINAL ============ -->
 <section id="final" class="screen"><div class="wrap" id="finWrap"></div></section>
 
+<div id="radio" class="min" title="Lofi radio">
+  <div class="yt"><div id="ytPlayer"></div></div>
+  <div class="rc">
+    <div class="rt" id="radioTitle">Lofi radio</div>
+    <div class="rb">
+      <button id="rPlay" title="Music on/off"><svg><use href="#i-note"/></svg></button>
+      <button id="rNext" title="Next song"><svg><use href="#i-next"/></svg></button>
+      <button id="rSfx" title="Sound effects on/off"><svg><use href="#i-sfx"/></svg></button>
+      <input type="range" id="rVol" min="0" max="100" value="35" title="Music volume">
+    </div>
+  </div>
+</div>
 <div class="modal" id="modal"><div class="box panel" id="modalBox"></div></div>
 <div id="toast"></div>
 
-<script src="players.js?v=3"></script>
-<script src="locations.js?v=3"></script>
+<script src="players.js?v=4"></script>
+<script src="locations.js?v=4"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
 <script>
@@ -396,13 +437,91 @@ ALL.sort((a,b)=>b.w-a.w);
 const bornCount = new Map(); for (const p of ALL) { const k = p.r+'|'+p.c; bornCount.set(k, (bornCount.get(k)||0)+1); }
 for (const [key, ll] of Object.entries(LOCS)) {
   const i = key.indexOf('|'), r = key.slice(0,i), c = key.slice(i+1);
-  if (!POOLS[r]) continue;
+  if (!POOLS[r] || ll.length < 4) continue;   // only towns snapped onto a road: never start inside a building
   (CITIES[r] ||= []).push({c, lat:ll[0], lng:ll[1], sl:ll[2] ?? ll[0], sg:ll[3] ?? ll[1], n:bornCount.get(key)||1});
 }
 const PLAYABLE = Object.keys(POOLS).filter(r => (CITIES[r]||[]).length && POOLS[r].length >= (D.meta.minPool||12));
 const isUS = r => r.length === 2;
 const kind = r => r==='PR' ? 'territory' : r==='DC' ? 'district' : isUS(r) ? 'state' : 'country';
 const place = (c, r) => `${c}, ${NAMES[r]}`;
+
+/* =================== sound =================== */
+const SFX = (() => {
+  let ctx = null, on = (()=>{ try { return localStorage.getItem('gb_sfx') !== '0'; } catch { return true; } })();
+  const ac = () => { if (!ctx) { try { ctx = new (window.AudioContext||window.webkitAudioContext)(); } catch { return null; } } if (ctx.state==='suspended') ctx.resume(); return ctx; };
+  function tone(f, t0, dur, {type='sine', vol=.18, f2=null, attack=.005} = {}) {
+    const c = ac(); if (!c || !on) return; const t = c.currentTime + t0;
+    const o = c.createOscillator(), g = c.createGain(); o.type = type; o.frequency.setValueAtTime(f, t);
+    if (f2) o.frequency.exponentialRampToValueAtTime(f2, t+dur);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t+attack); g.gain.exponentialRampToValueAtTime(.0001, t+dur);
+    o.connect(g).connect(c.destination); o.start(t); o.stop(t+dur+.05);
+  }
+  function noise(t0, dur, vol=.25, hp=200) {
+    const c = ac(); if (!c || !on) return; const t = c.currentTime + t0;
+    const b = c.createBuffer(1, c.sampleRate*dur, c.sampleRate), d = b.getChannelData(0); for (let i=0;i<d.length;i++) d[i] = (Math.random()*2-1)*(1-i/d.length)**2;
+    const src = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain(); src.buffer = b; f.type='highpass'; f.frequency.value = hp; g.gain.value = vol;
+    src.connect(f).connect(g).connect(c.destination); src.start(t);
+  }
+  const N = n => 440*Math.pow(2,(n-69)/12);
+  return {
+    get on(){ return on; }, set(v){ on = v; try { localStorage.setItem('gb_sfx', v?'1':'0'); } catch {} }, unlock(){ ac(); },
+    pin(){ tone(N(84),0,.08,{type:'triangle',vol:.16}); noise(0,.04,.12,2500); },
+    tick(){ tone(N(96),0,.03,{type:'square',vol:.05}); },
+    right(){ [72,76,79,84].forEach((n,i)=>tone(N(n), i*.09, .35, {type:'triangle', vol:.2})); tone(N(96), .36, .5, {vol:.08}); },
+    wrong(){ tone(N(45),0,.45,{type:'sawtooth',vol:.12}); tone(N(46),0,.45,{type:'sawtooth',vol:.1}); },
+    born(){ [67,72,76,79,84,88].forEach((n,i)=>tone(N(n), i*.07, .45, {type:'triangle', vol:.18})); [96,100].forEach((n,i)=>tone(N(n), .45+i*.08, .4, {vol:.07})); noise(.42,.5,.05,4000); },
+    nope(){ [[58,55],[57,54],[56,53],[55,47]].forEach(([a,b],i)=>tone(N(a), i*.32, i===3?.9:.3, {type:'sawtooth', vol:.11, f2:N(b)})); },
+    stamp(){ tone(110,0,.18,{vol:.35,f2:55}); noise(0,.08,.3,800); },
+    buzz(){ tone(N(40),0,.7,{type:'square',vol:.1}); tone(N(41),0,.7,{type:'sawtooth',vol:.08}); },
+    clock(){ tone(N(88),0,.05,{type:'square',vol:.06}); },
+    wheel(dur){ let t = 0, gap = .045; while (t < dur-.05) { const tt = t; tone(N(91), tt, .025, {type:'square', vol:.05}); t += gap; gap *= 1.075; } },
+    land(){ tone(N(88),0,.6,{vol:.16}); tone(N(95),.06,.6,{vol:.1}); },
+    fanfare(){ [[67,0],[67,.15],[67,.3],[72,.45],[76,.9],[79,1.2]].forEach(([n,t])=>{ tone(N(n),t,.5,{type:'sawtooth',vol:.07}); tone(N(n+12),t,.5,{type:'triangle',vol:.08}); }); },
+  };
+})();
+
+/* =================== radio (YouTube playlist) =================== */
+const RADIO = (() => {
+  const LIST = 'PL8hapc2gtF5FCCcM-MevnQtnZXRe5Pfg4', FIRST = '14c8x12Ip6A';
+  let player = null, ready = false, want = (()=>{ try { return localStorage.getItem('gb_music') !== '0'; } catch { return true; } })();
+  let vol = (()=>{ try { return +(localStorage.getItem('gb_vol') ?? 35); } catch { return 35; } })();
+  const el = document.getElementById('radio');
+  function paint(){
+    document.getElementById('rPlay').classList.toggle('off', !want);
+    document.getElementById('rSfx').classList.toggle('off', !SFX.on);
+    document.getElementById('rVol').value = vol;
+    el.classList.toggle('min', !want || !player);
+  }
+  function load(){
+    if (player || window.YT?.Player === undefined && document.getElementById('ytApi')) return;
+    window.onYouTubeIframeAPIReady = () => {
+      player = new YT.Player('ytPlayer', { width:112, height:63, videoId:FIRST,
+        playerVars:{ listType:'playlist', list:LIST, autoplay:1, controls:0, disablekb:1, modestbranding:1, playsinline:1, rel:0, loop:1, iv_load_policy:3 },
+        events:{
+          onReady: e => { ready = true; e.target.setShuffle(true); e.target.setLoop(true); e.target.setVolume(vol); if (want) e.target.playVideo(); paint(); },
+          onStateChange: () => { const d = player.getVideoData?.(); if (d?.title) document.getElementById('radioTitle').textContent = d.title.replace(/\[.*?\]|\(.*?\)|\|.*$/g,'').replace(/no copyright.*$/i,'').trim() || 'Lofi radio'; },
+        } });
+      paint();
+    };
+    if (!document.getElementById('ytApi')) { const s = document.createElement('script'); s.id = 'ytApi'; s.src = 'https://www.youtube.com/iframe_api'; document.head.appendChild(s); }
+  }
+  const api = {
+    start(){ SFX.unlock(); if (!want) return paint(); if (!player) load(); else if (ready) player.playVideo(); paint(); },
+    toggle(){ want = !want; try { localStorage.setItem('gb_music', want?'1':'0'); } catch {} if (want) api.start(); else if (ready) player.pauseVideo(); paint(); },
+    next(){ if (!player) { want = true; api.start(); return; } if (ready) player.nextVideo(); },
+    setVol(v){ vol = v; try { localStorage.setItem('gb_vol', v); } catch {} if (ready) player.setVolume(v); },
+    duck(ms=1600){ if (!ready || !want) return; player.setVolume(Math.round(vol*.35)); clearTimeout(api._d); api._d = setTimeout(()=>player.setVolume(vol), ms); },
+    paint,
+  };
+  document.getElementById('rPlay').onclick = api.toggle;
+  document.getElementById('rNext').onclick = api.next;
+  document.getElementById('rSfx').onclick = () => { SFX.set(!SFX.on); paint(); if (SFX.on) SFX.pin(); };
+  document.getElementById('rVol').oninput = e => api.setVol(+e.target.value);
+  paint();
+  return api;
+})();
+// first click anywhere (browsers need a gesture before audio) starts the radio
+document.addEventListener('pointerdown', function first(){ RADIO.start(); document.removeEventListener('pointerdown', first); }, {once:true});
 
 /* =================== utils =================== */
 const $ = s => document.querySelector(s);
@@ -427,7 +546,7 @@ function photo(p, cls){
   return `<div class="${cls}" id="${id}">${esc(initials(p.n))}</div>`;
 }
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('on'),2400)}
-const LS = { get(k,d){try{const v=localStorage.getItem('gb2_'+k);return v==null?d:JSON.parse(v)}catch{return d}}, set(k,v){try{localStorage.setItem('gb2_'+k,JSON.stringify(v))}catch{}} };
+const LS = { get(k,d){try{const v=localStorage.getItem('gb3_'+k);return v==null?d:JSON.parse(v)}catch{return d}}, set(k,v){try{localStorage.setItem('gb3_'+k,JSON.stringify(v))}catch{}} };
 
 /* =================== shapes (right-place check) =================== */
 const SHAPES = {};
@@ -470,7 +589,7 @@ const fitsOpen = p => p.e.filter(x => openSlots().includes(x));
 function shareUrl(){ const u = new URL(location.href.split('#')[0].split('?')[0]);
   if (G.daily) u.searchParams.set('daily','1'); else { u.searchParams.set('trip', G.seed); if (G.time) u.searchParams.set('t', G.time); if (G.move!=='move') u.searchParams.set('m', G.move); }
   return u.toString(); }
-function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on', s.id===id)); }
+function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on', s.id===id)); document.body.dataset.screen = id; }
 
 /* =================== home =================== */
 function renderHome(){
@@ -491,7 +610,7 @@ function renderHome(){
   const st = LS.get('stats', {games:0,bestWar:0,bestScore:0});
   $('#myStats').innerHTML = st.games ? `<span class="pill">Trips ${st.games}</span><span class="pill">Best score ${fmtInt(st.bestScore)}</span><span class="pill">Best nine ${fmtWar(st.bestWar)} WAR</span>` : '';
   const nIntl = ALL.filter(p=>!isUS(p.r)).length;
-  $('#footNote').innerHTML = `${fmtInt(ALL.length)} big leaguers whose careers started in ${D.meta.debutFrom} or later, ${fmtInt(nIntl)} of them born outside the U.S.<br>Career WAR from Baseball Reference · bios and stats from the MLB Stats API · Street View and map data © Google<br>A Jomboy Media game · not affiliated with MLB or Google`;
+  $('#footNote').innerHTML = `${fmtInt(ALL.length)} big leaguers who debuted in ${D.meta.debutFrom} or later and played at least a full season (${D.meta.fullSeason} games or innings), ${fmtInt(nIntl)} of them born outside the U.S.<br>Career WAR from Baseball Reference · bios and stats from the MLB Stats API · Street View and map data © Google<br>A Jomboy Media game · not affiliated with MLB or Google`;
 }
 function seg(id){ const el=$(id); el.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;el.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));LS.set(id,b.dataset.v)});
   const v=LS.get(id,null); if(v!=null) el.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.v===String(v))); }
@@ -528,6 +647,7 @@ function initMini(){
 function setGuess(ll){
   guessLL = {lat:ll.lat, lng:((ll.lng+540)%360)-180};
   if (guessMk) guessMk.setLatLng(ll); else guessMk = L.marker(ll,{icon:pin('guess')}).addTo(mini);
+  SFX.pin();
   const b = $('#guessBtn'); b.disabled = false; b.textContent = 'Guess';
 }
 function startRound(isResume){
@@ -546,7 +666,8 @@ function runTimer(){
   box.style.display='';
   const tick = () => { const left = Math.max(0, G.deadline-Date.now()), s = Math.ceil(left/1000);
     $('#hTimer').textContent = `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`; box.classList.toggle('low', s<=10);
-    if (left<=0) { clearInterval(timer); makeGuess(true); } };
+    if (s<=10 && s>0 && s!==runTimer.last) { runTimer.last = s; SFX.clock(); }
+    if (left<=0) { clearInterval(timer); if (!guessLL) SFX.buzz(); makeGuess(true); } };
   tick(); timer = setInterval(tick, 250);
 }
 function makeGuess(timeUp){
@@ -559,7 +680,7 @@ function makeGuess(timeUp){
     if (!ok && d < 25) ok = true;
     Object.assign(r, {guess:guessLL, km:d, pts:scoreFor(d), ok});
   } else Object.assign(r, {guess:null, km:null, pts:0, ok:false, timeUp:!!timeUp});
-  G.phase = 'result'; save(); showResult();
+  G.phase = 'result'; save(); showResult(true);
 }
 $('#guessBtn').onclick = () => makeGuess(false);
 document.addEventListener('keydown', e => { if (G?.phase==='play' && (e.key===' '||e.key==='Enter') && guessLL) { e.preventDefault(); makeGuess(false); } });
@@ -575,9 +696,10 @@ $('#hudHome').onclick = () => confirmBox('Head back to the menu?', 'Your trip is
 let resMap, resLayer;
 function initRes(){ if (resMap) return; resMap = L.map('resLMap', {worldCopyJump:true}); tiles().addTo(resMap); resLayer = L.layerGroup().addTo(resMap); }
 function outline(r, style){ const polys = SHAPES[r]; if (!polys) return null; return L.polygon(polys.map(p=>p.map(ring=>ring.map(([x,y])=>[y,x]))), style); }
-function showResult(){
+function showResult(fresh){
   show('result'); initRes(); clearInterval(timer);
   const r = cur(), c = curCity();
+  if (fresh) { RADIO.duck(2200); countUp(r.pts); setTimeout(()=> r.ok ? SFX.right() : SFX.wrong(), 1150); }
   setTimeout(()=>{
     resMap.invalidateSize(); resLayer.clearLayers();
     outline(r.r, {color: r.ok?'#2E7D57':'#D94032', weight:2.5, fillOpacity:.1})?.addTo(resLayer);
@@ -588,19 +710,30 @@ function showResult(){
       resMap.fitBounds(L.latLngBounds([[r.guess.lat,r.guess.lng],[c.lat,c.lng]]).pad(.4), {maxZoom:10});
     } else resMap.setView([c.lat,c.lng], 6);
   }, 30);
-  $('#rPts').innerHTML = `${fmtInt(r.pts)} <small>points</small>`;
+  if (!fresh) $('#rPts').innerHTML = `${fmtInt(r.pts)} <small>points</small>`;
   $('#rBar').style.width = '0'; setTimeout(()=>$('#rBar').style.width = (r.pts/50)+'%', 80);
   $('#rDist').innerHTML = r.guess ? `Your pin was <b>${fmtMi(r.km)}</b> away.` : (r.timeUp ? 'Time ran out before you dropped a pin.' : 'No pin this round.');
   renderDraft();
+}
+function countUp(total){
+  const t0 = performance.now(), dur = 1100; let lastTick = 0;
+  const step = now => { const k = Math.min(1, (now-t0)/dur), e = 1-Math.pow(1-k,3), v = Math.round(total*e);
+    $('#rPts').innerHTML = `${fmtInt(v)} <small>points</small>`;
+    if (now - lastTick > 55 && k < 1 && total > 0) { lastTick = now; SFX.tick(); }
+    if (k < 1) requestAnimationFrame(step); };
+  requestAnimationFrame(step);
 }
 function slotsHTML(can=[]){
   return `<div class="slots">${POS.map(p=>{ const x=G.lineup[p], pl=x&&BY_ID.get(x.id);
     return `<div class="slot ${x?(x.forced?'forced':'full'):''} ${!x&&can.includes(p)?'can':''}"><b>${p}</b><span>${pl?esc(lastName(pl.n)):'open'}</span></div>`}).join('')}</div>`;
 }
+// How deep the wheel reaches, by how the round went (pools are sorted by career WAR, then filtered to open spots)
+const WHEEL_PASS = 15, WHEEL_WRONG_NAME = 25;
+const wheelTop = r => !r.ok ? WHEEL_TOP : (r.attempt && !r.attempt.ok) ? WHEEL_WRONG_NAME : WHEEL_PASS;
 function wheelPool(){
   const r = cur(), used = usedIds(), open = openSlots();
   const fits = p => !used.has(p.id) && p.e.some(x=>open.includes(x));
-  let pool = POOLS[r.r].slice(0, WHEEL_TOP).filter(fits), oop = false;
+  let pool = POOLS[r.r].filter(fits).slice(0, wheelTop(r)), oop = false;
   if (!pool.length) pool = POOLS[r.r].filter(fits);
   if (!pool.length) { pool = POOLS[r.r].filter(p=>!used.has(p.id)); oop = true; }
   return {pool, oop};
@@ -623,11 +756,13 @@ function renderDraft(){
   if (r.ok && !r.attempt && !r.passed) {                           // ---- name a player
     h += slotsHTML();
     h += `<div class="panel ask"><h3>Name a player born in ${esc(rn)}</h3>
-      <p>One shot. He has to have played a spot you still need: ${openSlots().join(', ')}.</p>
+      <p>One shot. He has to have played a spot you still need: ${openSlots().join(', ')}. Pass and you spin from ${esc(rn)}'s top ${WHEEL_PASS}. Name the wrong guy and it's the top ${WHEEL_WRONG_NAME}.</p>
       <div class="ac"><input id="nameIn" placeholder="Start typing a name…" autocomplete="off" spellcheck="false"><ul id="acList"></ul></div>
       <div class="msg" id="nameMsg"></div>
-      <div class="row"><button class="linkbtn" id="passBtn">I've got nobody. Spin the wheel.</button></div></div>`;
-    el.innerHTML = h; wireNameInput(); el.scrollTop = 0; setTimeout(()=>$('#nameIn')?.focus(), 60); return;
+      <div class="row"><div class="nclock" id="nclock"><i id="nclockBar"></i><b id="nclockT">0:45</b></div><button class="linkbtn" id="passBtn">I've got nobody. Spin the top ${WHEEL_PASS}.</button></div></div>`;
+    el.innerHTML = h; wireNameInput(); el.scrollTop = 0; setTimeout(()=>$('#nameIn')?.focus(), 60);
+    if (!r.nameDeadline) { r.nameDeadline = Date.now() + NAME_SECONDS*1000; save(); }
+    runNameClock(); return;
   }
   if (r.attempt && r.attempt.ok && !r.pick) {                     // ---- named right, choose slot
     const fits = fitsOpen(attempt);
@@ -643,13 +778,29 @@ function renderDraft(){
   if (attempt && !r.attempt.ok) {
     h += `<div class="stamp no" style="transform:rotate(3deg)"><b>Not from there</b><span>wheel time</span></div>
       <div class="note"><b>${esc(attempt.n)}</b> was born in <b>${esc(place(attempt.c || 'somewhere', attempt.r))}</b>.</div>`;
-  } else if (r.passed) h += `<div class="note">No name, no problem. The wheel picks from ${esc(rn)}.</div>`;
+  } else if (r.nameTimeout) h += `<div class="stamp no" style="transform:rotate(3deg)"><b>Time's up</b><span>wheel time</span></div><div class="note">No name in 45 seconds. You still found ${esc(rn)}, so the wheel spins from its top ${WHEEL_PASS} who fit an open spot.</div>`;
+  else if (r.passed) h += `<div class="note">No name, no problem. You found ${esc(rn)}, so the wheel spins from its top ${WHEEL_PASS} who fit an open spot.</div>`;
   else h += `<div class="note">The wheel picks for you from players born in ${esc(rn)}.</div>`;
+  if (attempt && !r.attempt.ok) h += `<div class="note">Right ${kind(r.r)}, wrong guy: the wheel spins from ${esc(rn)}'s top ${WHEEL_WRONG_NAME} who fit an open spot.</div>`;
   const {pool, oop} = wheelPool();
   h += slotsHTML();
   h += `<div class="wheel"><div class="mark"></div><div class="reel" id="reel"><div style="color:#9AA3B2">${fmtInt(pool.length)} names on the wheel</div></div></div>
     <button class="btn" id="spinBtn" style="width:100%">Spin the wheel</button><div id="spinOut"></div>`;
   el.innerHTML = h; $('#spinBtn').onclick = () => spin(pool, oop); el.scrollTop = 0;
+}
+const NAME_SECONDS = 45; let nameTimer = null;
+function runNameClock(){
+  clearInterval(nameTimer);
+  const tick = () => {
+    const r = cur(); if (!$('#nclock') || r.attempt || r.passed || r.pick) { clearInterval(nameTimer); return; }
+    const left = Math.max(0, r.nameDeadline - Date.now()), s = Math.ceil(left/1000);
+    $('#nclockT').textContent = `0:${String(s).padStart(2,'0')}`;
+    $('#nclockBar').style.width = (left/(NAME_SECONDS*10)) + '%';
+    $('#nclock').classList.toggle('low', s <= 10);
+    if (s <= 10 && s > 0 && s !== runNameClock.last) { runNameClock.last = s; SFX.clock(); }
+    if (left <= 0) { clearInterval(nameTimer); r.passed = true; r.nameTimeout = true; save(); SFX.buzz(); renderDraft(); }
+  };
+  tick(); nameTimer = setInterval(tick, 200);
 }
 function wireNameInput(){
   const inp = $('#nameIn'), ul = $('#acList'); let hits = [], sel = 0;
@@ -665,35 +816,51 @@ function wireNameInput(){
     else if (e.key==='Enter' && hits[sel]) { e.preventDefault(); submitName(hits[sel]); }
   });
   ul.addEventListener('mousedown', e => { const li = e.target.closest('li'); if (li) { e.preventDefault(); submitName(hits[+li.dataset.i]); } });
-  $('#passBtn').onclick = () => { cur().passed = true; save(); renderDraft(); };
+  $('#passBtn').onclick = () => { cur().passed = true; save(); SFX.wrong(); renderDraft(); };
 }
 function submitName(p){
   const r = cur(), msg = $('#nameMsg');
   if (usedIds().has(p.id)) { msg.textContent = `${p.n} is already on your team.`; return; }
   if (p.r === r.r && !fitsOpen(p).length) { msg.textContent = `${p.n} is from ${NAMES[r.r]}, but every spot he played is filled. Name somebody else.`; return; }
-  r.attempt = {id:p.id, ok: p.r === r.r}; save(); renderDraft();
+  r.attempt = {id:p.id, ok: p.r === r.r}; save(); RADIO.duck(2500);
+  if (r.attempt.ok) SFX.born(); else SFX.nope();
+  renderDraft();
 }
 function draft(p, slot, forced, oop, how){
   const r = cur(); if (r.pick) return;
   G.lineup[slot] = {id:p.id, forced:!!forced, oop:!!oop};
-  r.pick = {id:p.id, slot, forced:!!forced, how}; save(); renderDraft(); renderHud();
+  r.pick = {id:p.id, slot, forced:!!forced, how}; save(); SFX.stamp(); renderDraft(); renderHud();
 }
 function spin(pool, oop){
   const r = cur(), rng = rngFrom(`wheel|${G.seed}|${G.idx}|${openSlots().join(',')}|${r.r}`);
   const target = pool[Math.floor(rng()*pool.length)];
-  const names = []; for (let i=0;i<44;i++) names.push(pool[Math.floor(Math.random()*pool.length)]);
-  names.push(target, pool[Math.floor(Math.random()*pool.length)]);
+  const names = reelNames(pool, target);
   const reel = $('#reel'); reel.style.transition='none'; reel.style.transform='translateY(0)';
   reel.innerHTML = names.map(p=>`<div>${esc(p.n)}</div>`).join('');
-  $('#spinBtn').disabled = true;
+  $('#spinBtn').disabled = true; SFX.wheel(3.6);
   requestAnimationFrame(()=>requestAnimationFrame(()=>{ reel.style.transition='transform 3.6s cubic-bezier(.12,.72,.12,1)'; reel.style.transform=`translateY(-${(names.length-2)*42}px)`; }));
   setTimeout(()=>{
-    $('#spinBtn').style.display='none';
+    SFX.land(); $('#spinBtn').style.display='none';
     const fits = oop ? openSlots() : fitsOpen(target);
     $('#spinOut').innerHTML = cardHTML(target, `<div class="pc-slots"><span class="label" style="width:100%">${oop?'Nobody fits, so he plays out of position. Put him at':'The wheel says. Put him at'}</span>${fits.map(s=>`<button class="btn sm" data-slot="${s}">${s}</button>`).join('')}</div>`);
     $('#spinOut').querySelectorAll('[data-slot]').forEach(b=>b.onclick=()=>draft(target, b.dataset.slot, true, oop, 'wheel'));
     fillStats(target); $('#spinOut').scrollIntoView({behavior:'smooth', block:'nearest'});
   }, 3750);
+}
+function reelNames(pool, target){
+  // 44 decoys, then the winner, then one more. No name twice in a row, and the winner's name only where it lands.
+  const others = pool.filter(p => p.n !== target.n);
+  const bag = others.length ? others : [target], out = [];
+  let deck = [];
+  while (out.length < 46) {
+    if (!deck.length) deck = bag.slice().sort(()=>Math.random()-.5);
+    const p = deck.pop();
+    if (out.length && out[out.length-1].n === p.n && bag.length > 1) continue;
+    out.push(p);
+  }
+  out.splice(44, 1, target);
+  if (out[43].n === target.n && others.length) out[43] = others.find(p=>p.n!==target.n) || out[43];
+  return out;
 }
 function cardHTML(p, actions=''){
   const aw = []; if (p.hof) aw.push('<span class="hof">Hall of Fame</span>');
@@ -704,20 +871,46 @@ function cardHTML(p, actions=''){
     <div class="pc-war"><b>${fmtWar(p.w)}</b><span>CAREER WAR</span></div></div></div>
     <div class="pc-body">
       <div class="pc-line"><b>Played</b>${p.e.join(' · ')} &nbsp; <b>Years</b>${esc(p.y)}${p.br?` &nbsp; <a href="https://www.baseball-reference.com/players/${p.br[0]}/${p.br}.shtml" target="_blank" rel="noopener">Baseball Reference</a>`:''}</div>
-      <div class="pc-stats loading" data-stats="${p.id}">Pulling career numbers…</div>
+      <div class="pc-bio" data-bio="${p.id}"></div>
+      <div class="pc-stats loading" data-stats="${p.id}">Pulling his career…</div>
+      <div class="pc-teams" data-teams="${p.id}"></div>
       ${aw.length?`<div class="pc-aw">${aw.slice(0,8).join('')}</div>`:''}
       ${actions}
     </div></div>`;
 }
 const STATS = new Map();
+const POS_WORD = {C:'catcher','1B':'first baseman','2B':'second baseman','3B':'third baseman',SS:'shortstop',LF:'left fielder',CF:'center fielder',RF:'right fielder',P:'pitcher'};
+function bioLine(p, s){
+  const pr = s.person || {}, hand = x => ({R:'right',L:'left',S:'switch'})[x];
+  const isP = p.e[0]==='P' || (p.e.includes('P') && p.e.length===1);
+  const posTxt = isP ? 'Pitcher' : p.e.filter(x=>x!=='P').map(x=>POS_WORD[x]).slice(0,3).join(', ').replace(/^./, c=>c.toUpperCase());
+  const bt = [hand(pr.batSide?.code) && (pr.batSide.code==='S' ? 'switch-hits' : `bats ${hand(pr.batSide.code)}`), hand(pr.pitchHand?.code) && `throws ${hand(pr.pitchHand.code)}`].filter(Boolean).join(', ');
+  const role = posTxt + (bt ? `. ${bt.charAt(0).toUpperCase()+bt.slice(1)}` : '');
+  const body = [pr.height, pr.weight ? pr.weight+' lb' : ''].filter(Boolean).join(', ');
+  const n = (s.teams||[]).length, main = (s.teams||[]).slice().sort((a,b)=>b.n-a.n)[0];
+  const yrs = new Set(); (s.teams||[]).forEach(t=>{ for(let y=t.a;y<=t.b;y++) yrs.add(y); });
+  let txt = `${pr.nickName ? `<b>“${esc(pr.nickName)}”</b> · ` : ''}${role}${body?`, ${esc(body)}`:''}`;
+  if (n) txt += n===1 ? `. Spent his whole career with the <b>${esc(main.t)}</b>.` : `. Played for ${n} clubs, mostly the <b>${esc(main.t)}</b>.`;
+  if (p.w >= 60) txt += ' One of the best ever from ' + (['DOM','NLD','BHS','GBR'].includes(p.r) ? 'the ' : '') + esc(NAMES[p.r]) + '.';
+  return txt;
+}
 async function fillStats(p){
   try {
     let s = STATS.get(p.id);
     if (!s) {
-      const j = await (await fetch(`https://statsapi.mlb.com/api/v1/people/${p.id}?hydrate=stats(group=[hitting,pitching],type=[career])`)).json();
-      s = {}; for (const g of (j.people?.[0]?.stats||[])) s[g.group.displayName] = g.splits?.[0]?.stat;
+      const j = await (await fetch(`https://statsapi.mlb.com/api/v1/people/${p.id}?hydrate=stats(group=[hitting,pitching],type=[career,yearByYear])`)).json();
+      const person = j.people?.[0] || {}, seasons = {};
+      s = {person};
+      for (const g of (person.stats||[])) {
+        if (g.type.displayName === 'career') s[g.group.displayName] = g.splits?.[0]?.stat;
+        else for (const sp of (g.splits||[])) if (sp.team?.name && sp.sport?.id === 1) (seasons[sp.team.name] ||= new Set()).add(+sp.season);
+      }
+      s.teams = Object.entries(seasons).map(([t, ys]) => ({t, a:Math.min(...ys), b:Math.max(...ys), n:ys.size})).sort((x,y)=>x.a-y.a || y.n-x.n);
       STATS.set(p.id, s);
     }
+    document.querySelectorAll(`[data-bio="${p.id}"]`).forEach(el => el.innerHTML = bioLine(p, s));
+    document.querySelectorAll(`[data-teams="${p.id}"]`).forEach(el => el.innerHTML = s.teams.length
+      ? `<span class="label">Played for</span>` + s.teams.map(t=>`<div><b>${esc(t.t)}</b><span>${t.a===t.b?t.a:`${t.a}–${t.b}`}</span></div>`).join('') : '');
     const pitcher = p.e.includes('P') && (p.e.length===1 || (s.pitching && parseFloat(s.pitching.inningsPitched||0) > (s.hitting?.plateAppearances||0)/3));
     let cells;
     if (pitcher && s.pitching) { const x = s.pitching; cells = [['W-L',`${x.wins}-${x.losses}`],['ERA',x.era],['SO',fmtInt(x.strikeOuts)],['WHIP',x.whip],['IP',Math.round(parseFloat(x.inningsPitched))],[x.saves>20?'SV':'GS',x.saves>20?x.saves:x.gamesStarted]]; }
@@ -769,7 +962,7 @@ function showFinal(){
   if (G.phase !== 'done') {
     const st = LS.get('stats',{games:0,bestWar:0,bestScore:0}); st.games++; st.bestWar=Math.max(st.bestWar,war); st.bestScore=Math.max(st.bestScore,score); LS.set('stats',st);
     if (G.daily) LS.set('daily_'+todayKey(), {score, war, share});
-    G.phase = 'done'; save();
+    G.phase = 'done'; save(); RADIO.duck(3000); setTimeout(()=>SFX.fanfare(), 300);
   }
   const named = G.rounds.filter(r=>r.pick?.how==='named').length;
   const mine = POS.map(pos=>{ const x=G.lineup[pos], p=x&&BY_ID.get(x.id);

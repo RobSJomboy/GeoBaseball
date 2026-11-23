@@ -21,6 +21,7 @@ GNIS, GEONAMES = sys.argv[1:3]
 DEBUT_FROM = 1947          # the era rule: careers that started with or after Jackie Robinson
 WHEEL_TOP = 120            # the wheel draws from a region's top N by WAR
 MIN_POOL = 12              # a region needs this many players to be a drop location
+FULL_SEASON = 162          # career games (or innings pitched) to count: no cup-of-coffee guys
 
 def J(name): return json.load(open(os.path.join(DATA, name)))
 def get(url):
@@ -77,6 +78,7 @@ def num(v):
     try: return float(v)
     except (TypeError, ValueError): return 0.0
 war, ipouts, pa, brid, seasons = defaultdict(float), defaultdict(int), defaultdict(int), {}, defaultdict(set)
+games = {False: defaultdict(int), True: defaultdict(int)}   # batting-file G, pitching-file G
 for path, is_p in (('war_bat.txt', False), ('war_pitch.txt', True)):
     with open(os.path.join(DATA, path), newline='', encoding='utf-8', errors='replace') as f:
         for row in csv.DictReader(f):
@@ -85,6 +87,7 @@ for path, is_p in (('war_bat.txt', False), ('war_pitch.txt', True)):
             war[mid] += num(row.get('WAR'))
             if is_p: ipouts[mid] += int(num(row.get('IPouts')))
             else: pa[mid] += int(num(row.get('PA')))
+            games[is_p][mid] += int(num(row.get('G')))
             bb = (row.get('player_ID') or '').strip()
             if bb and bb != 'NULL': brid.setdefault(mid, bb)
             yr = (row.get('year_ID') or '').strip()
@@ -149,10 +152,14 @@ def accolades(pid):
     return out, len(a.get('WS', [])), bool(a.get('HOF'))
 
 # ---------------------------------------------------------------- players
-by_region, names = defaultdict(list), {}
+def full_season(pid):
+    return max(games[False].get(pid, 0), games[True].get(pid, 0)) >= FULL_SEASON or ipouts.get(pid, 0) >= FULL_SEASON * 3
+
+by_region, names, short = defaultdict(list), {}, 0
 for pid, p in people.items():
     reg = region_of(p)
     if not reg: continue
+    if not full_season(pid): short += 1; continue
     ys = seasons.get(pid) or ({int(p['debut'])} | ({int(p['lastYr'])} if p['lastYr'].isdigit() else set()))
     a, b = min(ys), max(ys)
     name = re.sub(r'\s+Sr\.$', '', p['name'])
@@ -165,6 +172,7 @@ for pid, p in people.items():
     if hof: rec['hof'] = 1
     by_region[reg].append(rec)
 for lst in by_region.values(): lst.sort(key=lambda r: (-r['w'], r['n']))
+print(f'dropped {short} players with under {FULL_SEASON} career games / innings', file=sys.stderr)
 
 # ---------------------------------------------------------------- geocoding
 def norm(s):
@@ -232,7 +240,7 @@ for k in sorted(miss, key=lambda k: -born[k])[:25]: print('   MISS', k, born[k],
 
 # ---------------------------------------------------------------- emit
 names_out = dict(STATES); names_out.update({k: v[0] for k, v in COUNTRIES.items()})
-meta = {'built': '2026-11-23', 'debutFrom': DEBUT_FROM, 'wheelTop': WHEEL_TOP, 'minPool': MIN_POOL,
+meta = {'built': '2026-11-23', 'debutFrom': DEBUT_FROM, 'fullSeason': FULL_SEASON, 'wheelTop': WHEEL_TOP, 'minPool': MIN_POOL,
         'players': sum(len(v) for v in by_region.values()),
         'source': 'MLB StatsAPI (bio, fielding, awards) + Baseball Reference career WAR'}
 payload = {'meta': meta, 'names': names_out,
