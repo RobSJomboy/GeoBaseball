@@ -1,11 +1,11 @@
-# GeoBaseball
+# BaseballGuessr
 
 A GeoGuessr-style baseball game for the Jomboy Media community. You land on a real street in a
 big leaguer's hometown, anywhere from Ohio to the Dominican Republic to Japan. Find the spot on the
 map, then **name a player born there**. Nine rounds fill a nine-man lineup (C, 1B, 2B, 3B, SS, LF,
 CF, RF, P), scored by career WAR.
 
-Live: https://robsjomboy.github.io/GeoBaseball/
+Live: https://robsjomboy.github.io/GeoBaseball/ (repo still named GeoBaseball; baseballguessr.com once registered)
 
 | File | What it is |
 |---|---|

@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>GeoBaseball</title>
+<title>BaseballGuessr</title>
 <meta name="description" content="A GeoGuessr-style baseball game. You land somewhere a big leaguer was born. Find the spot, then name a player from there. Nine rounds, one lineup, scored by career WAR.">
-<meta property="og:title" content="GeoBaseball">
+<meta property="og:title" content="BaseballGuessr">
 <meta property="og:description" content="Find the spot. Name a big leaguer born there. Build the best nine.">
 <meta name="theme-color" content="#F4ECDC">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -57,7 +57,7 @@ a{color:var(--sky)}
 .hero{text-align:center;padding:44px 0 10px;position:relative}
 .hero .ball{width:120px;height:120px;margin:0 auto 4px;display:block;animation:bob 5s ease-in-out infinite}
 @keyframes bob{50%{transform:rotate(-8deg) translateY(-4px)}}
-.hero h1{font-family:var(--slab);font-weight:400;font-size:clamp(54px,11vw,118px);line-height:.92;margin:0;color:var(--ink);letter-spacing:-.01em;
+.hero h1{font-family:var(--slab);font-weight:400;font-size:clamp(38px,9.4vw,104px);line-height:.92;margin:0;color:var(--ink);letter-spacing:-.01em;
   text-shadow:4px 4px 0 var(--gold)}
 .hero h1 span{color:var(--red)}
 .hero p{max-width:580px;margin:18px auto 0;font-size:19px;line-height:1.5;color:var(--ink2)}
@@ -319,12 +319,12 @@ body[data-screen="result"] #radio{left:58px;bottom:auto;top:10px}
 <section id="home" class="screen on">
   <div class="wrap">
     <div class="nav">
-      <a class="logo" href="#" onclick="return false"><svg><use href="#ball"/></svg><b>GeoBaseball</b></a>
+      <a class="logo" href="#" onclick="return false"><svg><use href="#ball"/></svg><b>BaseballGuessr</b></a>
       <div id="resumeBox"></div>
     </div>
     <div class="hero">
       <svg class="ball"><use href="#ball"/></svg>
-      <h1>Geo<span>Baseball</span></h1>
+      <h1>Baseball<span>Guessr</span></h1>
       <p>You land somewhere a big leaguer was born. Work out where you are, then name a player from there. Nine rounds, nine spots, one lineup.</p>
     </div>
     <div class="tickets">
@@ -369,7 +369,7 @@ body[data-screen="result"] #radio{left:58px;bottom:auto;top:10px}
   <div id="sv"></div>
   <div id="svBlock"></div>
   <div id="svLoading"><svg><use href="#ball"/></svg><div>Finding a street…</div></div>
-  <button class="hud hud-logo" id="hudHome" title="Menu"><svg><use href="#ball"/></svg><b>GeoBaseball</b></button>
+  <button class="hud hud-logo" id="hudHome" title="Menu"><svg><use href="#ball"/></svg><b>BaseballGuessr</b></button>
   <button class="hud strip" id="strip" title="See your lineup (L)"></button>
   <div class="hud scorebox">
     <div><small>Round</small><b id="hRound">1/9</b></div>
@@ -990,7 +990,7 @@ function showFinal(){
   show('final');
   const score = totalScore(), war = totalWar(), [g, gsub] = grade(war), bt = bestTeam(), left = Math.max(0, bt.w-war);
   const marks = G.rounds.map(roundMark).join('');
-  const share = `GeoBaseball${G.daily?' · '+todayKey():''}\n📍 ${fmtInt(score)} / 45,000\n⚾ ${fmtWar(war)} WAR · ${g}\n${marks}\n${shareUrl()}`;
+  const share = `BaseballGuessr${G.daily?' · '+todayKey():''}\n📍 ${fmtInt(score)} / 45,000\n⚾ ${fmtWar(war)} WAR · ${g}\n${marks}\n${shareUrl()}`;
   if (G.phase !== 'done') {
     const st = LS.get('stats',{games:0,bestWar:0,bestScore:0}); st.games++; st.bestWar=Math.max(st.bestWar,war); st.bestScore=Math.max(st.bestScore,score); LS.set('stats',st);
     if (G.daily) LS.set('daily_'+todayKey(), {score, war, share});
@@ -1006,7 +1006,7 @@ function showFinal(){
   const rows = G.rounds.map((r,i)=>{ const c = r.cities[r.ci], p = r.pick && BY_ID.get(r.pick.id);
     return `<tr><td>${i+1}</td><td>${esc(place(c.c, r.r))}</td><td class="hide-m">${r.pick?.how==='named'?'Named him':r.ok?'Right place, wheel':'Wheel'}</td><td class="r hide-m">${r.km==null?'—':fmtMi(r.km)}</td><td class="r">${fmtInt(r.pts||0)}</td><td>${p?esc(p.n)+' ('+r.pick.slot+')':'—'}</td></tr>`}).join('');
   $('#finWrap').innerHTML = `
-    <div class="nav"><a class="logo" href="#" onclick="return false"><svg><use href="#ball"/></svg><b>GeoBaseball</b></a><span class="label">${G.daily?'Daily · '+todayKey():'Open road'}</span></div>
+    <div class="nav"><a class="logo" href="#" onclick="return false"><svg><use href="#ball"/></svg><b>BaseballGuessr</b></a><span class="label">${G.daily?'Daily · '+todayKey():'Open road'}</span></div>
     <div class="fin-head"><span class="label">Your nine is</span><h1>${esc(g)}</h1><p>${esc(gsub)}</p></div>
     <div class="totals">
       <div class="panel tot"><span class="label">Geo score</span><b>${fmtInt(score)}</b><span>of 45,000 · ${marks}</span></div>
@@ -1027,7 +1027,7 @@ function showFinal(){
     <table class="rounds"><thead><tr><th>#</th><th>Stop</th><th class="hide-m">How</th><th class="r hide-m">Off by</th><th class="r">Pts</th><th>Pick</th></tr></thead><tbody>${rows}</tbody></table>
     <div class="foot">Career WAR from Baseball Reference · Street View and map data © Google · A Jomboy Media game</div>`;
   $('#fShare').onclick = () => copy(share);
-  $('#fChal')?.addEventListener('click', () => copy(`Beat my GeoBaseball nine: ${fmtInt(score)} pts, ${fmtWar(war)} WAR. Same nine stops: ${shareUrl()}`));
+  $('#fChal')?.addEventListener('click', () => copy(`Beat my BaseballGuessr nine: ${fmtInt(score)} pts, ${fmtWar(war)} WAR. Same nine stops: ${shareUrl()}`));
   $('#fAgain').onclick = () => { newGame({seed:Math.random().toString(36).slice(2,10), time:G.daily?0:G.time, move:G.move}); startRound(); };
   $('#fHome').onclick = renderHome;
   if (finMap) { finMap.remove(); finMap = null; }
