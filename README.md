@@ -47,8 +47,11 @@ Live: https://robsjomboy.github.io/GeoBaseball/
 - **Every drop is verified.** `build/check_sv.py` asks Google's public Street View thumbnail URL
   (no key) about each road point. It returns a real photo only where Google's own car imagery exists,
   and a ~250-byte blank otherwise, never user photos. `build/rescue_sv.py` searches rings up to
-  800 m around failed towns. Only verified towns are drops (2,180 of 2,379). Venezuela and Cuba
-  have no Google car coverage, so they aren't drop locations.
+  800 m around failed towns. Only verified towns are drops.
+- **Venezuela and Cuba** have no Google car coverage, so every town there was loaded in the embed and
+  checked by eye (2026-11-24). Only outdoor street/plaza photos made `build/manual_sv.json`: 8 Cuban
+  and 5 Venezuelan towns. Indoor ones (Remedios bell tower, Bejuma arcade) were rejected.
+  These are user photos, so one can disappear if its owner deletes it; re-check now and then.
 
 ## Rebuilding the data
 
@@ -63,6 +66,7 @@ cp ../locations.js data/locations_raw.js
 python3 snap_roads.py ../players.js data/locations_raw.js data/locations_snapped.js   # ~1 hour at OSRM's 1 req/s, resumable
 python3 check_sv.py data/locations_snapped.js data/locations_verified.js
 python3 rescue_sv.py data/locations_verified.js ../locations.js
+python3 apply_manual_sv.py ../locations.js ../locations.js            # hand-checked Venezuela/Cuba spots
 ```
 
 Bump `?v=` on the two script tags in `index.html` after replacing the data files.
