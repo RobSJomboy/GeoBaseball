@@ -42,9 +42,8 @@ Live: https://robsjomboy.github.io/GeoBaseball/
   people upload their own photos, sometimes indoors, so **drop points are snapped onto the nearest
   named road** (public OSRM `nearest`), where Google's car imagery runs. Scoring still measures to
   the town center.
-- Countries with no Google car coverage (Venezuela, Cuba, Nicaragua, South Korea: `svMode: 'photo'`
-  in `build_data.py`) keep the plaza point, where uploaded outdoor photos cluster. Some spots still
-  show "No Street View available"; the swap button moves to another birth town in the same place.
+- Countries marked `svMode: 'photo'` in `build_data.py` (thin or no Google car coverage) are snapped
+  by a second, slower worker (`snap_roads.py --only-photo`) and then face the same check below.
 - **Every drop is verified.** `build/check_sv.py` asks Google's public Street View thumbnail URL
   (no key) about each road point. It returns a real photo only where Google's own car imagery exists,
   and a ~250-byte blank otherwise, never user photos. `build/rescue_sv.py` searches rings up to
