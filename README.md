@@ -20,11 +20,13 @@ Live: https://robsjomboy.github.io/GeoBaseball/
   player born there. The autocomplete covers every player in the game but only shows name,
   positions and years, never birthplace. One shot.
   - Born there, and he played a spot you still need → he's yours.
-  - Not born there → the game tells you where he's from, and the wheel picks.
+  - Not born there → the game tells you where he's from, and the wheel picks from a 5-player window
+    on that place's WAR list set by your pin's points (5,000 = #1–5, 4,000 ≈ #7–11, 0 ≈ #38–42).
   - Born there but every spot he played is filled → name someone else (doesn't burn your shot).
-- **Wrong state or country, no pin, or "I've got nobody"** → the wheel draws from that place's
-  top 120 players by career WAR who fit an open spot.
-- **Era:** only players whose MLB debut was 1947 or later (`DEBUT_FROM` in `build/build_data.py`).
+- **Right place but you pass, or the 45-second name clock runs out** → the wheel spins that place's top 15.
+- **Wrong state or country, or no pin** → the wheel draws from that place's top 120 by career WAR.
+  All wheel pools only include players who fit an open spot.
+- **Era:** MLB debut 1947 or later, and at least a full season (162 games or 162 innings).
 - **Points:** `5000 × e^(−km / 750)`.
 - **Best possible nine:** one player per stop, nine different men, each at a spot he played; solved exactly.
 - **Daily** is seeded by date (2:00 rounds, one try per browser). **Challenge a friend** links
@@ -43,8 +45,11 @@ Live: https://robsjomboy.github.io/GeoBaseball/
 - Countries with no Google car coverage (Venezuela, Cuba, Nicaragua, South Korea: `svMode: 'photo'`
   in `build_data.py`) keep the plaza point, where uploaded outdoor photos cluster. Some spots still
   show "No Street View available"; the swap button moves to another birth town in the same place.
-- Coverage can't be checked ahead of time: the embed looks it up with a key that only works on
-  Google's own pages.
+- **Every drop is verified.** `build/check_sv.py` asks Google's public Street View thumbnail URL
+  (no key) about each road point. It returns a real photo only where Google's own car imagery exists,
+  and a ~250-byte blank otherwise, never user photos. `build/rescue_sv.py` searches rings up to
+  800 m around failed towns. Only verified towns are drops (2,180 of 2,379). Venezuela and Cuba
+  have no Google car coverage, so they aren't drop locations.
 
 ## Rebuilding the data
 
@@ -56,7 +61,9 @@ curl -L -o data/war_pitch.txt https://www.baseball-reference.com/data/war_daily_
 # gazetteers: USGS GNIS DomesticNames_National.txt and GeoNames cities500.txt
 python3 build_data.py <DomesticNames_National.txt> <cities500.txt>   # fetches fielding + awards once, writes ../players.js ../locations.js
 cp ../locations.js data/locations_raw.js
-python3 snap_roads.py ../players.js data/locations_raw.js ../locations.js   # ~1 hour at OSRM's 1 req/s, resumable
+python3 snap_roads.py ../players.js data/locations_raw.js data/locations_snapped.js   # ~1 hour at OSRM's 1 req/s, resumable
+python3 check_sv.py data/locations_snapped.js data/locations_verified.js
+python3 rescue_sv.py data/locations_verified.js ../locations.js
 ```
 
 Bump `?v=` on the two script tags in `index.html` after replacing the data files.

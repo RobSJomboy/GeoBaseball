@@ -108,7 +108,7 @@ a{color:var(--sky)}
 .scorebox b{font-family:var(--cond);font-weight:800;font-size:26px;line-height:1}
 .scorebox .t b{color:var(--red)}
 .scorebox .t.low{background:var(--red)}.scorebox .t.low b,.scorebox .t.low small{color:#fff}
-.strip{left:50%;top:12px;transform:translateX(-50%);display:flex;gap:3px;padding:4px;background:var(--card);border:var(--bw) solid var(--ink);border-radius:12px;box-shadow:3px 3px 0 var(--ink)}
+.strip{cursor:pointer;left:50%;top:12px;transform:translateX(-50%);display:flex;gap:3px;padding:4px;background:var(--card);border:var(--bw) solid var(--ink);border-radius:12px;box-shadow:3px 3px 0 var(--ink)}
 .sl{width:38px;height:38px;border-radius:7px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:1.5px dashed rgba(31,39,51,.35)}
 .sl b{font-family:var(--cond);font-weight:800;font-size:15px;line-height:1;color:var(--ink3)}
 .sl i{font-style:normal;font-family:var(--cond);font-weight:700;font-size:11px;line-height:1.1}
@@ -296,6 +296,8 @@ body[data-screen="result"] #radio{left:58px;bottom:auto;top:10px}
 .modal h3{font-family:var(--slab);font-weight:400;font-size:30px;margin:0 0 8px}
 .modal p{color:var(--ink2);line-height:1.5;margin:0 0 18px}
 .modal .row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.modal .box.wide{max-width:560px;text-align:left;max-height:calc(100vh - 32px);overflow:auto}
+.lineup-list .tr:first-child{border-top:0}
 </style>
 </head>
 <body>
@@ -368,7 +370,7 @@ body[data-screen="result"] #radio{left:58px;bottom:auto;top:10px}
   <div id="svBlock"></div>
   <div id="svLoading"><svg><use href="#ball"/></svg><div>Finding a street…</div></div>
   <button class="hud hud-logo" id="hudHome" title="Menu"><svg><use href="#ball"/></svg><b>GeoBaseball</b></button>
-  <div class="hud strip" id="strip"></div>
+  <button class="hud strip" id="strip" title="See your lineup (L)"></button>
   <div class="hud scorebox">
     <div><small>Round</small><b id="hRound">1/9</b></div>
     <div><small>Score</small><b id="hScore">0</b></div>
@@ -420,8 +422,8 @@ body[data-screen="result"] #radio{left:58px;bottom:auto;top:10px}
 <div class="modal" id="modal"><div class="box panel" id="modalBox"></div></div>
 <div id="toast"></div>
 
-<script src="players.js?v=4"></script>
-<script src="locations.js?v=4"></script>
+<script src="players.js?v=5"></script>
+<script src="locations.js?v=5"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
 <script>
@@ -685,7 +687,7 @@ function makeGuess(timeUp){
 $('#guessBtn').onclick = () => makeGuess(false);
 document.addEventListener('keydown', e => { if (G?.phase==='play' && (e.key===' '||e.key==='Enter') && guessLL) { e.preventDefault(); makeGuess(false); } });
 $('#btnStart').onclick = loadSV;
-$('#btnStuck').onclick = () => { const r = cur(); r.ci = (r.ci+1) % r.cities.length; save(); loadSV(); toast(r.cities.length>1 ? `New spot, still in ${NAMES[r.r]}` : 'Reloading this spot'); };
+$('#btnStuck').onclick = () => { const r = cur(); r.ci = (r.ci+1) % r.cities.length; save(); loadSV(); toast(r.cities.length>1 ? 'New spot' : 'Reloading this spot'); };
 $('#mmPin').onclick = e => { $('#guessWrap').classList.toggle('pinned'); e.currentTarget.classList.toggle('on'); setTimeout(()=>mini.invalidateSize(),230); };
 $('#guessWrap').addEventListener('transitionend', ()=>mini && mini.invalidateSize());
 $('#mapToggle').onclick = () => { $('#guessWrap').classList.add('open'); setTimeout(()=>mini.invalidateSize(),260); };
@@ -723,24 +725,54 @@ function countUp(total){
     if (k < 1) requestAnimationFrame(step); };
   requestAnimationFrame(step);
 }
+function showLineup(){
+  if (!G) return;
+  const rows = POS.map(pos => { const x = G.lineup[pos], p = x && BY_ID.get(x.id);
+    return p ? `<div class="tr"><div class="pos">${pos}</div>${photo(p,'ph')}<div class="nm">${esc(p.n)}${x.forced?'<span class="tag r">Wheel</span>':'<span class="tag g">Named</span>'}${x.oop?'<span class="tag r">Out of pos.</span>':''}<small>${esc(place(p.c, p.r))} · ${esc(p.y)}</small></div><div class="w">${fmtWar(p.w)}</div></div>`
+             : `<div class="tr"><div class="pos">${pos}</div><div></div><div class="nm" style="color:var(--ink3)">Open</div><div class="w" style="color:var(--ink3)">—</div></div>`; }).join('');
+  const left = ROUNDS - G.rounds.filter(r=>r.pick).length;
+  $('#modalBox').innerHTML = `<h3 style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:2px"><span>Your nine</span><span>${fmtWar(totalWar())} <small class="label">WAR</small></span></h3>
+    <p style="margin:0 0 10px;text-align:left">${fmtInt(totalScore())} points so far · ${left} spot${left===1?'':'s'} to fill</p>
+    <div class="lineup-list">${rows}</div>
+    <div class="row" style="margin-top:16px"><button class="btn" id="mNo">Back to it</button></div>`;
+  $('#modalBox').classList.add('wide'); $('#modal').classList.add('on');
+  $('#mNo').onclick = closeModal;
+}
+function closeModal(){ $('#modal').classList.remove('on'); $('#modalBox').classList.remove('wide'); }
+$('#modal').addEventListener('click', e => { if (e.target.id === 'modal') closeModal(); });
+document.addEventListener('keydown', e => {
+  if (document.activeElement?.tagName === 'INPUT') return;
+  if ((e.key === 'l' || e.key === 'L') && G && G.phase !== 'done' && ['game','result'].includes(document.body.dataset.screen)) { e.preventDefault(); $('#modal').classList.contains('on') ? closeModal() : showLineup(); }
+  if (e.key === 'Escape') closeModal();
+});
+$('#strip').onclick = showLineup;
 function slotsHTML(can=[]){
   return `<div class="slots">${POS.map(p=>{ const x=G.lineup[p], pl=x&&BY_ID.get(x.id);
     return `<div class="slot ${x?(x.forced?'forced':'full'):''} ${!x&&can.includes(p)?'can':''}"><b>${p}</b><span>${pl?esc(lastName(pl.n)):'open'}</span></div>`}).join('')}</div>`;
 }
 // How deep the wheel reaches, by how the round went (pools are sorted by career WAR, then filtered to open spots)
-const WHEEL_PASS = 15, WHEEL_WRONG_NAME = 25;
-const wheelTop = r => !r.ok ? WHEEL_TOP : (r.attempt && !r.attempt.ok) ? WHEEL_WRONG_NAME : WHEEL_PASS;
+// Right place + wrong name: your pin's points pick a 5-player window on the WAR list (5,000 pts = #1-5, 0 pts = ~#38-42)
+const WHEEL_PASS = 15, WINDOW = 5, WINDOW_DEPTH = 40;
+const wheelTop = r => !r.ok ? WHEEL_TOP : WHEEL_PASS;
+const wrongName = r => r.ok && r.attempt && !r.attempt.ok;
 function wheelPool(){
   const r = cur(), used = usedIds(), open = openSlots();
   const fits = p => !used.has(p.id) && p.e.some(x=>open.includes(x));
-  let pool = POOLS[r.r].filter(fits).slice(0, wheelTop(r)), oop = false;
+  let pool, oop = false, lo = 0;
+  const eligible = POOLS[r.r].filter(fits);
+  if (wrongName(r)) {
+    const center = Math.round((1 - (r.pts||0)/5000) * (WINDOW_DEPTH-1));
+    lo = Math.max(0, Math.min(center - Math.floor(WINDOW/2), eligible.length - WINDOW));
+    pool = eligible.slice(lo, lo + WINDOW);
+  } else pool = eligible.slice(0, wheelTop(r));
   if (!pool.length) pool = POOLS[r.r].filter(fits);
   if (!pool.length) { pool = POOLS[r.r].filter(p=>!used.has(p.id)); oop = true; }
-  return {pool, oop};
+  return {pool, oop, lo};
 }
+function wireLineupBtn(){ const b=$('#lineupBtn'); if (b) b.onclick = showLineup; }
 function renderDraft(){
   const r = cur(), c = curCity(), el = $('#draft'), rn = NAMES[r.r], k = kind(r.r);
-  let h = `<div class="place"><small class="label">Round ${G.idx+1} of ${ROUNDS} · you were in</small><h2>${esc(place(c.c, r.r))}</h2></div>`;
+  let h = `<div class="place"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><small class="label">Round ${G.idx+1} of ${ROUNDS} · you were in</small><button class="btn sm alt" id="lineupBtn">Lineup · ${fmtWar(totalWar())}</button></div><h2>${esc(place(c.c, r.r))}</h2></div>`;
   if (r.ok) h += `<div class="stamp ok"><b>Right ${k}</b><span>${esc(rn)}</span></div>`;
   else h += `<div class="stamp no"><b>Wrong ${k}</b><span>${r.guess ? 'wheel time' : 'no pin'}</span></div>`;
   const pick = r.pick && BY_ID.get(r.pick.id);
@@ -751,16 +783,16 @@ function renderDraft(){
     h += cardHTML(pick);
     h += `<div class="note">${r.pick.how==='named' ? `<b>${esc(pick.n)}</b> is yours at ${r.pick.slot}.` : `The wheel put <b>${esc(pick.n)}</b> at ${r.pick.slot}.`} Your nine is at <b>${fmtWar(totalWar())} WAR</b>.</div>`;
     h += `<button class="btn green" id="nextBtn" style="width:100%">${G.idx+1<ROUNDS ? 'Next round' : 'See your nine'}</button>`;
-    el.innerHTML = h; $('#nextBtn').onclick = nextRound; fillStats(pick); el.scrollTop = 0; return;
+    el.innerHTML = h; wireLineupBtn(); $('#nextBtn').onclick = nextRound; fillStats(pick); el.scrollTop = 0; return;
   }
   if (r.ok && !r.attempt && !r.passed) {                           // ---- name a player
     h += slotsHTML();
     h += `<div class="panel ask"><h3>Name a player born in ${esc(rn)}</h3>
-      <p>One shot. He has to have played a spot you still need: ${openSlots().join(', ')}. Pass and you spin from ${esc(rn)}'s top ${WHEEL_PASS}. Name the wrong guy and it's the top ${WHEEL_WRONG_NAME}.</p>
+      <p>One shot. He has to have played a spot you still need: ${openSlots().join(', ')}. Pass and you spin from ${esc(rn)}'s top ${WHEEL_PASS}. Name the wrong guy and the wheel goes by your pin: the closer it was, the better the player.</p>
       <div class="ac"><input id="nameIn" placeholder="Start typing a name…" autocomplete="off" spellcheck="false"><ul id="acList"></ul></div>
       <div class="msg" id="nameMsg"></div>
       <div class="row"><div class="nclock" id="nclock"><i id="nclockBar"></i><b id="nclockT">0:45</b></div><button class="linkbtn" id="passBtn">I've got nobody. Spin the top ${WHEEL_PASS}.</button></div></div>`;
-    el.innerHTML = h; wireNameInput(); el.scrollTop = 0; setTimeout(()=>$('#nameIn')?.focus(), 60);
+    el.innerHTML = h; wireLineupBtn(); wireNameInput(); el.scrollTop = 0; setTimeout(()=>$('#nameIn')?.focus(), 60);
     if (!r.nameDeadline) { r.nameDeadline = Date.now() + NAME_SECONDS*1000; save(); }
     runNameClock(); return;
   }
@@ -769,7 +801,7 @@ function renderDraft(){
     h += `<div class="stamp ok" style="transform:rotate(3deg)"><b>Born there</b><span>good call</span></div>`;
     h += slotsHTML(fits);
     h += cardHTML(attempt, `<div class="pc-slots"><span class="label" style="width:100%">Put him at</span>${fits.map(s=>`<button class="btn sm" data-slot="${s}">${s}</button>`).join('')}</div>`);
-    el.innerHTML = h;
+    el.innerHTML = h; wireLineupBtn();
     el.querySelectorAll('[data-slot]').forEach(b=>b.onclick=()=>draft(attempt, b.dataset.slot, false, false, 'named'));
     if (fits.length===1) setTimeout(()=>draft(attempt, fits[0], false, false, 'named'), 900);
     fillStats(attempt); el.scrollTop = 0; return;
@@ -781,12 +813,12 @@ function renderDraft(){
   } else if (r.nameTimeout) h += `<div class="stamp no" style="transform:rotate(3deg)"><b>Time's up</b><span>wheel time</span></div><div class="note">No name in 45 seconds. You still found ${esc(rn)}, so the wheel spins from its top ${WHEEL_PASS} who fit an open spot.</div>`;
   else if (r.passed) h += `<div class="note">No name, no problem. You found ${esc(rn)}, so the wheel spins from its top ${WHEEL_PASS} who fit an open spot.</div>`;
   else h += `<div class="note">The wheel picks for you from players born in ${esc(rn)}.</div>`;
-  if (attempt && !r.attempt.ok) h += `<div class="note">Right ${kind(r.r)}, wrong guy: the wheel spins from ${esc(rn)}'s top ${WHEEL_WRONG_NAME} who fit an open spot.</div>`;
-  const {pool, oop} = wheelPool();
+  const {pool, oop, lo} = wheelPool();
+  if (attempt && !r.attempt.ok && !oop) h += `<div class="note">Right ${kind(r.r)}, wrong guy. Your pin was worth <b>${fmtInt(r.pts)} points</b>, so the wheel spins from ${esc(rn)}'s <b>#${lo+1}–${lo+pool.length}</b> by career WAR among players who fit an open spot.</div>`;
   h += slotsHTML();
   h += `<div class="wheel"><div class="mark"></div><div class="reel" id="reel"><div style="color:#9AA3B2">${fmtInt(pool.length)} names on the wheel</div></div></div>
     <button class="btn" id="spinBtn" style="width:100%">Spin the wheel</button><div id="spinOut"></div>`;
-  el.innerHTML = h; $('#spinBtn').onclick = () => spin(pool, oop); el.scrollTop = 0;
+  el.innerHTML = h; wireLineupBtn(); $('#spinBtn').onclick = () => spin(pool, oop); el.scrollTop = 0;
 }
 const NAME_SECONDS = 45; let nameTimer = null;
 function runNameClock(){
@@ -1018,7 +1050,7 @@ function copy(text){
 }
 function confirmBox(title, body, ok, fn){
   $('#modalBox').innerHTML = `<h3>${esc(title)}</h3><p>${esc(body)}</p><div class="row"><button class="btn" id="mOk">${esc(ok)}</button><button class="btn alt" id="mNo">Keep playing</button></div>`;
-  $('#modal').classList.add('on'); $('#mOk').onclick = ()=>{ $('#modal').classList.remove('on'); fn(); }; $('#mNo').onclick = ()=>$('#modal').classList.remove('on');
+  $('#modalBox').classList.remove('wide'); $('#modal').classList.add('on'); $('#mOk').onclick = ()=>{ $('#modal').classList.remove('on'); fn(); }; $('#mNo').onclick = ()=>$('#modal').classList.remove('on');
 }
 (function boot(){
   const q = new URLSearchParams(location.search);
